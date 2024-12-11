@@ -1,0 +1,48 @@
+---
+title: "Sustainable Growth: Exploring Integrative Multi-Trophic Aquaculture on the West Coast"
+output:
+  github_document:
+    toc: false
+---
+
+# Contents
+
+This repository contains an analysis of potential locations within the
+Economic Exclusion Zones (EEZ) along the West Coast of the US that are
+potentially suitable locations for integrative multi-trophic aquaculture
+(IMTA).
+
+# Techniques
+
+This repository highlights a variety of skills and techniques including:
+
+1.  Data Management
+    -   Wrangling and tidying data using [@tidyverse], [@here], and
+        [@janitor]
+
+    -   Visualizations with [@ggplot2] and [@tmap]
+
+    -   Clear documentation and folder structures for reproducibility,
+        collaboration, and modularity
+
+    -   Integration of conditional statements and custom checks to
+        increase reproducibility, error handling, and modularity
+
+    -   Development of generalizable functions to allow for
+        reproducibility and flexibility in analyses
+2.  Geospatial Analysis
+    -   Handling spatial data with [@terra] and [@sf]
+    -   Generating informative interactive maps with [@tmap]
+    -   Map algebra with spatial objects within [@terra] and [@sf]
+3.  Sustainable Fisheries Science
+    -   Adapting concepts from [@gentry2017] and [@troell2009] to
+        analyze potential locations within the West Coast EEZs that are
+        suitable for integrative multi-trophic aquaculture (IMTA) with
+        oysters and a variety of potential finfish species
+
+    -   Integration of flexible species-specific tolerances throughout
+        the spatial analyses
+
+# Data
+
+-  

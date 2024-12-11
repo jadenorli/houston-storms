@@ -1,0 +1,19 @@
+
+/* set the aesthetics for the body of the document */
+body {
+  font-family: "Times New Roman", Times, serif; /*set the font to Times New Roman */
+}
+
+/* set the aesthetics for the headers of the document */
+h1, h2, h3, h4, h5, h6, h7 {
+  font-family: "Times New Roman", Times, serif;
+}
+
+/* set the aesthetics for the main title of the document */
+h1.title {
+  font-size: 40px;
+  font-weight: bold;
+  text-align: center;
+}
+
+ 
