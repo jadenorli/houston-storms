@@ -40,7 +40,7 @@ To explore this topic, we used remote sensing imagery from before and after the 
 
 1.  Night Light Images
     -   Homes were classified as having experiencing a blackout by calculating the difference in night light intensity from data acquired from the [Visible Infrared Imaging Radiometer Suite (VIIRS)](https://en.wikipedia.org/wiki/Visible_Infrared_Imaging_Radiometer_Suite) onboard the Suomi satellite [@viirs_wikipedia].
-    -   Homes that were located in areas that experienced a drop of **MORE** than 200 nW cm^-2^sr^-1^ were classified as having experienced a blackout.
+    -   Homes that were located in areas that experienced a drop of **MORE** than 200 nW cm$^{-2}$ sr$^{-1}$ were classified as having experienced a blackout.
 2.  Open Street Map Data
     -   Roads and homes in the Houston metropolitan area were identified and classified using [Open Street Map](https://www.openstreetmap.org/#map=4/38.01/-95.84) data [@openstreetmap].
     -   Roads:
@@ -220,7 +220,7 @@ night_light_maps <- function(data_obj, bbox_obj = NULL, map_title = NULL) {
     tm_raster(col = "intensity",
               breaks = c(0, 5, 10, 15, 20, 30, 50, 100, 150, 200, 300, Inf),
               palette = c(dark_palette(4), nightlight_palette(9)),
-              title = "Intensity")
+              title = expression(Intensity~(200~nW~cm^{-2}~sr^{-1})))
     
   } else if (inherits(data_obj, "sf")) {
     
@@ -229,7 +229,7 @@ night_light_maps <- function(data_obj, bbox_obj = NULL, map_title = NULL) {
     tm_fill(col = "intensity",
             breaks = c(0, 5, 10, 15, 20, 30, 50, 100, 150, 200, 300, Inf),
             palette = c(dark_palette(4), nightlight_palette(9)),
-            title = "Intensity")
+            title = expression(Intensity~(200~nW~cm^{-2}~sr^{-1})))
   }
   
   #plot the data_obj (with or without a bbox)
@@ -244,8 +244,8 @@ night_light_maps <- function(data_obj, bbox_obj = NULL, map_title = NULL) {
               legend.text.fontfamily = "Times New Roman",
               legend.title.fontfamily = "Times New Roman",
               legend.title.fontface = "bold",
-              legend.text.size = 0.8, 
-              legend.title.size = 1,
+              legend.text.size = 0.5, 
+              legend.title.size = 0.6,
               legend.frame = TRUE,
               legend.frame.lwd = 1,
               legend.outside.size = 0.2,
@@ -259,7 +259,7 @@ night_light_maps <- function(data_obj, bbox_obj = NULL, map_title = NULL) {
   png_path <- file.path(maps_folder, paste0(map_name, ".png"))
   
   #save the map as a png in the maps folder 
-  tmap_save(map, filename = png_path, width = 8, height = 6, dpi = 300)
+  tmap_save(map, filename = png_path, width = 8, height = 6, dpi = 800)
   
   #return the renamed tmap object in the environment  
   return(assign(map_name, map, envir = .GlobalEnv))
@@ -1462,6 +1462,16 @@ animation <- tmap_animation(list(NL_02072021_crop_map, NL_02162021_crop_map, bla
                             width = 800,
                             height = 600, 
                             filename = animation_file)
+
+```
+
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+#| echo: false
+
 #visualize the animation 
 htmltools::tags$img(src = animation_file, width = "800px", height = "600px")
 
@@ -1527,9 +1537,9 @@ homes <- homes %>%
 
 Now that each home has an average night light intensity, we can classify the homes as having experienced a blackout or not with the following two classifications:
 
-1.  blackout: any location that experienced a drop of **MORE** than 200 nW cm-2sr-1 as **HAVING** experienced a blackout, and
+1.  blackout: any location that experienced a drop of **MORE** than 200 nW cm$^{-2}$ sr$^{-1}$ as **HAVING** experienced a blackout, and
 
-2.  no_blackout: any location that experienced a drop of **LESS** than 200 nW cm-2sr-1 as **NOT** having experienced a blackout.
+2.  no_blackout: any location that experienced a drop of **LESS** than 200 nW cm$^{-2}$ sr$^{-1}$ as **NOT** having experienced a blackout.
 
 ```{r}
 #| warning: false
@@ -1623,9 +1633,9 @@ tracts <- tracts %>%
 
 Now that each census tract has an average night light intensity, we can classify the tract as having experienced a blackout or not with the following two classifications:
 
-1.  blackout: any location that experienced a drop of **MORE** than 200 nW cm-2sr-1 as **HAVING** experienced a blackout, and
+1.  blackout: any location that experienced a drop of **MORE** than 200 nW cm$^{-2}$ sr$^{-1}$ as **HAVING** experienced a blackout, and
 
-2.  no_blackout: any location that experienced a drop of **LESS** than 200 nW cm-2sr-1 as **NOT** having experienced a blackout.
+2.  no_blackout: any location that experienced a drop of **LESS** than 200 nW cm$^{-2}$ sr$^{-1}$ as **NOT** having experienced a blackout.
 
 ```{r}
 #| warning: false
@@ -2132,9 +2142,9 @@ cwi_df <- calculate_cwi(swi_df, hwi_df)
 
 Now that we have calculated the [**combined weighted intensity**](#combined_calc), we can classify the tracts as having experienced a blackout or not with the following two classifications:
 
-1.  blackout: any location that experienced a drop of **MORE** than 200 nW cm-2sr-1 as **HAVING** experienced a blackout, and
+1.  blackout: any location that experienced a drop of **MORE** than 200 nW cm$^{-2}$ sr$^{-1}$ as **HAVING** experienced a blackout, and
 
-2.  no_blackout: any location that experienced a drop of **LESS** than 200 nW cm-2sr-1 as **NOT** having experienced a blackout.
+2.  no_blackout: any location that experienced a drop of **LESS** than 200 nW cm$^{-2}$ sr$^{-1}$ as **NOT** having experienced a blackout.
 
 ```{r}
 #| warning: false
@@ -2315,7 +2325,7 @@ standard_kable(combined_table, col_names_s, caption = "Blackout Status Summary f
 
 As we have worked towards accomplishing our original [objective](#motivation) to investigate potential socioeconomic factors that influenced recovery after the [The Great Texas Freeze](#great_freeze), we have [estimated the number of homes](#estimate_results) in the Houston metropolitan area that lost power and qualitatively investigated whether not these impacts were disproportionately felt through various maps ([individual homes](#home_visual), [census tracts](#tract_visual), and a [combined approach](#combined_visual)) and [density plots](#plot_results). This [analysis](#estimate_results) revealed differing results based on the method used to classify the blackout status. This is most readily apparent in the [blackout summary](#estimate_results) table.
 
-The first thing we notice is that using the [combined approach](#class_combined) drastically reduces the number of homes classified as experiencing a blackout from roughly 36% of the homes to approximately 11% of the homes. However, although the number of homes classified as experiencing a blackout decreased, so did the average median household income which is nearly **ten thousand dollars** *LESS* than the other two methods. When we classify homes using the [individual homes](#home_blackout) method, the average median income of the homes that *experienced* a blackout is **HIGHER** than the homes that did *not* experience a blackout. But when we classify homes using the [census tract](#tract_blackout) method, the average income of the homes that *experienced* a blackout is approximately **EQUAL** to the average median income of the homes that did *not* experience a blackout. 
+The first thing we notice is that using the [combined approach](#class_combined) drastically reduces the number of homes classified as experiencing a blackout from roughly 36% of the homes to approximately 11% of the homes. Interestingly enough, the first two methods provided an estimate more closely aligned with the roughly 40% officially reported in the final report [@austin2021]. However, although the number of homes classified as experiencing a blackout decreased using the combined approach, so did the average median household income which is nearly **ten thousand dollars** *LESS* than the other two methods. When we classify homes using the [individual homes](#home_blackout) method, the average median income of the homes that *experienced* a blackout is **HIGHER** than the homes that did *not* experience a blackout. But when we classify homes using the [census tract](#tract_blackout) method, the average income of the homes that *experienced* a blackout is approximately **EQUAL** to the average median income of the homes that did *not* experience a blackout. 
 
 Overall, there does not appear to an easily discernible relationship between the median household income and recovery after the storm. However, rather than concluding that there is no correlation between socioeconomic factors and disaster cover, this analysis highlights the lack of finely resolved spatially-explicit data. It is challenging to decipher relationships when the required data is *very sparse* and historically even **less** comprehensive for areas which are the most vulnerable to the negative impacts of the socioeconomic disparities. Increasing the temporal and spatial resolution of future datasets will be critical to accurately assessing trends in these factors. 
 
