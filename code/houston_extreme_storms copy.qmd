@@ -1,0 +1,2336 @@
+---
+title: "Extreme Winter Storms: Exploring the Impacts of Socioeconomic Inequalities in a Changing Climate"
+subtitle: '<span style="font-size: 30px; text-align: center; display: block;">The Great Texas Freeze of 2021</span>'
+author: "Jaden Orli"
+date: last-modified
+bibliography: 
+ - ../bibs/references.bib
+ - ../bibs/packages.bib
+nocite: |
+  @tidyverse, @here, @janitor, @stringr, @ggplot2, @knitr, @tibble, @htmltools, @scales
+execute: 
+  eval: true
+format:
+  html: 
+    theme: minty
+    css: custom.css
+    toc: true
+    toc-title: "Table of Contents:"
+math: true
+editor_options: 
+  chunk_output_type: inline
+embed-resources: true
+---
+
+# I. Background
+
+## a) Motivation {#motivation}
+
+Humanity is intrinsically intertwined with the Earth system through a network of interdependent feedback loops that dictate the resilience of both systems. This understanding has led to the postulation of an ongoing geological event, the Anthropocene, that relates human influence on the global Earth system to other historical transformations of the biosphere [@gibbard2022]. One of the implications of this transformation episode in Earth's history, is a change in the intensity, frequency, and duration of extreme weather events such as storms [@allan2020]. Additionally, recent studies highlight that social inequalities between communities can amplify the disproportionate impacts of these storms, with marginalized populations often bearing the brunt of the associated risks and damages [@smiley2022].
+
+Wehner and Sampson analyzed the human-induced changes in the magnitude of flooding from Hurricane Harvey in the Houston area in 2017. This study estimates that roughly 19-24% of the increase in precipitation during this event can be attributed to human-induced changes; therefore, climate change increased the cost of Hurricane Harvey by about 14% or US\$13Bn [@wehner2021]. To further explore this social disparity, we conducted a spatially-explicit analysis of the Houston area before and after The Great Texas Freeze of 2021 as a case study.
+
+## b) The Great Texas Freeze {#great_freeze}
+
+On February 10th-11th/13th-17th and March 15th-20th, Winter Storm Uri swept across the southwest causing US\$195Bn in damages. The Texas official findings report concluded that during this time there was 164 hours of freezing temperatures with 40% of Austin Energy customers losing power and 254 counties placed under a disaster declaration [@austin2021]. To identify the impacts of these series of extreme winter storms, we estimated the number of homes in the Houston metropolitan area that lost power and whether not these impacts were disproportionately felt.
+
+## c) Data {#data}
+
+To explore this topic, we used remote sensing imagery from before and after the storm to determine which areas in the Houston metropolis lost power and experienced a blackout as a result of Winter Storm Uri. We then determined if there was a socioeconomic disparity between these areas by using median household income from 2019 as a proxy. This analysis involves the integration of the three below data sources:
+
+1.  Night Light Images
+    -   Homes were classified as having experiencing a blackout by calculating the difference in night light intensity from data acquired from the [Visible Infrared Imaging Radiometer Suite (VIIRS)](https://en.wikipedia.org/wiki/Visible_Infrared_Imaging_Radiometer_Suite) onboard the Suomi satellite [@viirs_wikipedia].
+    -   Homes that were located in areas that experienced a drop of **MORE** than 200 nW cm$^{-2}$ sr$^{-1}$ were classified as having experienced a blackout.
+2.  Open Street Map Data
+    -   Roads and homes in the Houston metropolitan area were identified and classified using [Open Street Map](https://www.openstreetmap.org/#map=4/38.01/-95.84) data [@openstreetmap].
+    -   Roads:
+        -   Highways account for a large portion of the night lights observable from space, so to minimize falsely classifying areas that regularly experience reduced traffic levels as having experienced a blackout, we will ignore residential buildings that are within 200m of highways.
+    -   Homes:
+        -   The OSM data contains information for all the buildings within the area, but we are only interested in considering residential buildings since we will be assigning socioeconomic status to these features based on census data.
+3.  Socioeconomic Data
+    -   Socioeconomic data was obtained from the [US Census Bureau's American Community Survey](https://www.census.gov/programs-surveys/acs) for census tracts in 2019 [@acs_us_census].
+    -   Since we can't obtain socioeconomic data for every individual residence, we assigned socioeconomic status to the homes from the Open Street Map data by spatially joining this data to each homes identified within the appropriate census tract.
+
+
+# II. Load Libraries
+
+First, load the necessary packages for this analysis:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#this clears out the environment
+rm(list = ls())
+
+#load necessary data packages
+library(tidyverse)
+library(here)
+library(janitor)
+library(stringr)
+library(terra)
+library(sf)
+library(tmap)
+library(ggplot2)
+library(knitr)
+library(tibble)
+library(kableExtra)
+library(htmltools)
+library(scales)
+
+```
+
+
+# III. Define Functions
+
+All functions used in this workflow are outlined and defined in this [section](#define_functions), and grouped into three subcategories:
+
+-   [a) Visualization](#visualization),
+-   [b) Data Processing](#data_processing), and
+-   [c) Analysis](#analysis).
+
+## a) Visualization {#visualization}
+
+### i) Standard Kable Format {#standard_kable}
+
+This function can be used to generate a [@kableExtra] from a tibble or dataframe that is formatted to match the general formatting in this document.
+
+The input is:
+
+-   data: a tibble or dataframe that contains the values to be displayed in the table
+
+-   col_names: a named vector with the names to be used for the column headers
+
+-   caption_text: the title to be used for the table
+
+The output is:
+
+-   kable_output: a kable generated from the data input with the col_names as headers
+
+    -   this kable is saved with the name "data + _kable"
+
+    -   this output is also saved to the tables subfolder in the figures folder
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#write a function to generate a standard kable format 
+standard_kable <- function(data, col_names, caption_text) {
+  
+  #extract the name of the data to save as the kable filename
+  filename <- deparse(substitute(data))
+  
+  #write the standard formatting for the kable outputs
+  kable_output <- data %>%
+    kable("html",
+          col.names = col_names,
+          caption = htmltools::tags$div(style = "text-align: center; font-size: 20px;",
+                                        htmltools::tags$strong(caption_text))) %>%
+    kable_styling(full_width = FALSE, font_size = 14) %>%
+    row_spec(row = 0, bold = TRUE) %>%
+    kable_classic(html_font = "Times New Roman")
+  
+  #define the file path 
+  kable_file <- file.path(tables_folder, paste0(filename, "_kable.html"))
+  
+  #save the kable
+  save_kable(kable_output, file = kable_file)
+
+  #print the kable
+  return(kable_output)
+}
+
+```
+
+
+### ii) Generate Night Light Maps
+
+This function can be used to generate a [@tmap] from the nightlight data using the color palettes defined below for the dark and light regions of the display.
+
+Colors:
+
+1.   Dark Palette:
+    - We will visualize the dark regions using a spectrum of colors ranging from <span style="background-color:midnightblue; padding:2px;">dark blue</span> to <span style="background-color:gray13; padding:2px;">dark gray</span>.
+2.   Light Palette:
+    - We will visualize the light regions using a spectrum of colors ranging from <span style="background-color:darkgoldenrod1; padding:2px;">dark yellow</span> to <span style="background-color:lemonchiffon; padding:2px;">light yellow</span>.
+
+The input is:
+
+-   data_obj: a dataframe that contains the values to be displayed in the map
+
+-   bbox_obj: a boundary box (bbox) to be used to define the bounds of the map
+
+    -   optional (default is NULL)
+
+-   map_title: the title to be used for the map
+
+    -   optional (default is NULL)
+
+    -   if not provided, use the name of the data_obj for the title
+
+The output is:
+
+-   map: a map of the night light intensity generated from the data_obj input 
+
+    -   this map is saved with the name "data_obj + _map"
+    
+    -   this output is also saved to the maps subfolder in the figures folder
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#create a color palette to use for the dark zones
+dark_palette <- colorRampPalette(c("gray13", "midnightblue"))
+
+#create a color palette to use for the light  zones
+nightlight_palette <- colorRampPalette(c("darkgoldenrod1", "lemonchiffon"))
+
+#write a function to generate a map of the night light intensity 
+night_light_maps <- function(data_obj, bbox_obj = NULL, map_title = NULL) {
+  
+  #extract the name of the data object
+  obj_name <- deparse(substitute(data_obj))
+  
+  #if there is a map_title entry, use that for the title, if not, use the obj_name
+  title <- if (!is.null(map_title)) map_title else obj_name
+  
+  #check to determine if there is a bbox provided or not; if there is a bbox (!is.null(bbox) = TRUE) 
+  shape <- if (!is.null(bbox_obj)) {
+    
+    #then use the bbox in the plot
+    tm_shape(data_obj, bbox = bbox_obj)
+    
+    #if there is NOT a bbox (!is.null(bbox) = FALSE) 
+  } else {
+    
+    #then do NOT use a bbox
+    tm_shape(data_obj)
+  }
+  
+  #check to determine if the data is a raster or vector object; if it is a raster object
+  if (inherits(data_obj, "SpatRaster")) {
+    
+    #then use tm_raster to visualize
+    map <- shape +
+    tm_raster(col = "intensity",
+              breaks = c(0, 5, 10, 15, 20, 30, 50, 100, 150, 200, 300, Inf),
+              palette = c(dark_palette(4), nightlight_palette(9)),
+              title = expression(Intensity~(200~nW~cm^{-2}~sr^{-1})))
+    
+  } else if (inherits(data_obj, "sf")) {
+    
+    #if it is an sf object, then use tm_fill to visualize
+    map <- shape +
+    tm_fill(col = "intensity",
+            breaks = c(0, 5, 10, 15, 20, 30, 50, 100, 150, 200, 300, Inf),
+            palette = c(dark_palette(4), nightlight_palette(9)),
+            title = expression(Intensity~(200~nW~cm^{-2}~sr^{-1})))
+  }
+  
+  #plot the data_obj (with or without a bbox)
+  map <- map +
+    tm_layout(main.title = title,
+              main.title.position = "center",
+              main.title.size = 1, 
+              main.title.fontfamily = "Times New Roman",
+              main.title.fontface = "bold",
+              legend.outside = TRUE,                   
+              legend.outside.position = "right",
+              legend.text.fontfamily = "Times New Roman",
+              legend.title.fontfamily = "Times New Roman",
+              legend.title.fontface = "bold",
+              legend.text.size = 0.5, 
+              legend.title.size = 0.6,
+              legend.frame = TRUE,
+              legend.frame.lwd = 1,
+              legend.outside.size = 0.2,
+              frame.lwd = 2) +
+    tm_graticules(col = "white")
+  
+  #rename the map with the object name + map
+  map_name <- paste(obj_name, "map", sep = "_")
+  
+  #define the file path and file name for the map output into the maps folder
+  png_path <- file.path(maps_folder, paste0(map_name, ".png"))
+  
+  #save the map as a png in the maps folder 
+  tmap_save(map, filename = png_path, width = 8, height = 6, dpi = 800)
+  
+  #return the renamed tmap object in the environment  
+  return(assign(map_name, map, envir = .GlobalEnv))
+}
+
+```
+
+
+### iii) Generate Blackout Status Maps
+
+This function can be used to generate an interactive [@tmap] for the blackout status classifications:
+
+Colors:
+
+1.   Blackout Classification:
+    - We will visualize the blackout regions in <span style="background-color:#CAE1FF; padding:2px;">dark gray</span>.
+2.   No Blackout Classification:
+    - We will visualize the unaffected regions in <span style="background-color:#C1FFC1; padding:2px;">light green</span>. 
+
+The input is:
+
+-   data_obj: a dataframe that contains the values to be displayed in the map
+
+-   map_title: the title to be used for the map
+
+    -   optional (default is NULL)
+
+    -   if not provided, use the name of the data_obj for the title
+
+-   zoom_level: how zoomed in to start the map
+
+    -   the map will be centered around the middle of the spatial object
+
+The output is:
+
+-   map: a map of the blackout classifications generated from the data_obj input 
+
+    -   this map is saved with the name "data_obj + _interactive_map"
+    
+    -   this output is also saved to the maps subfolder in the figures folder
+
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#assign a variable name for the blackout color
+blackout_color <- "steelblue4"
+
+#assign a variable name for the unaffected color
+unaffected_color <- "darkseagreen3"
+
+#write a function to generate a map of the blackout status
+blackout_status_maps <- function(data_obj, map_title = NULL, zoom_level) {
+  
+  #set the map mode to be interactive 
+  tmap_mode("view")
+  
+  #extract the name of the data object
+  obj_name <- deparse(substitute(data_obj))
+  
+  #if there is a map_title entry, use that for the title, if not, use the obj_name
+  title <- if (!is.null(map_title)) map_title else obj_name
+  
+  #calculate the center of the sf object
+  center_coords <- sf::st_centroid(sf::st_union(sf::st_geometry(data_obj)))
+  
+  #extract the longitude from the center coordinates
+  center_lng <- sf::st_coordinates(center_coords)[1] 
+  
+  #extract the latitude from the center coordinates
+  center_lat <- sf::st_coordinates(center_coords)[2]
+
+  #plot the data_obj
+  map <- tm_shape(data_obj) +
+    tm_fill(col = "status",
+            palette = c(blackout_color, unaffected_color),
+            title = "Blackout Status",
+            labels = c("Blackout Area", "No Blackout")) +
+    tm_layout(main.title = title,
+              main.title.position = "center",
+              main.title.size = 1, 
+              main.title.fontfamily = "Times New Roman",
+              main.title.fontface = "bold") +
+    tm_scale_bar(position = c("left", "bottom")) 
+
+  #add a title for the interactive view map
+  title_int <- tags$h1(title,
+                       style = "text-align: center; font-family: Times New Roman; font-size: 24px; font-weight: bold;")
+
+  #combine the title and the map and center the map 
+  map_int <- htmltools::browsable(htmltools::tagList(title_int,
+                                                     tmap_leaflet(map) %>%
+                                                       leaflet::setView(lng = center_lng,
+                                                                        lat = center_lat,
+                                                                        zoom = zoom_level)))
+  
+  #rename the map with the object name + map
+  map_name <- paste(obj_name, "interactive_map", sep = "_")
+  
+  #define the file path and file name for the map output into the maps folder
+  html_path <- file.path(maps_folder, paste0(map_name, ".html"))
+  
+  #save the map as an interactive object
+  htmltools::save_html(map_int, file = html_path)
+  
+  #return the renamed tmap object in the environment  
+  return(assign(map_name, map_int, envir = .GlobalEnv))
+}
+
+```
+
+
+## b) Data Processing {#data_processing}
+
+### i) Identify Spatial Properties {#identify_spatial_properties}
+
+This function can be used to create a tibble with all of the geometric properties (resolution, extent, origin, and coordinate reference system) for a list of spatial objects with the class "SpatRaster" or "sf object" (both terra and sf compatible). This is useful for comparing the spatial properties of the spatial objects in a workflow to ensure compatibility before processing begins.
+
+The input is:
+
+-   spatial_file_list: a list of spatial objects
+
+The output is:
+
+-   spatial_properties: a tibble with a column for the name of the spatial object, the resolution, extent, origin, and coordinate reference system (crs)
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#write a function to create a tibble with all the spatial properties for a list of spatial objects
+identify_spatial_properties <- function(spatial_file_list) {
+  
+  #create an empty tibble to hold the output
+  spatial_properties <- tibble(name = character(),
+                               resolution = character(),
+                               extent = character(),
+                               origin = character(),
+                               crs = character())
+  
+  #extract the name of the list 
+  list_name <- deparse(substitute(spatial_file_list))
+  
+  #write a for loop to extract the properties into the tibble for review
+  for (file_name in names(spatial_file_list)) {
+    
+    #extract the current spatial object
+    obj <- spatial_file_list[[file_name]]
+    
+    #since we have sf objects and SpatRasters, we must handle them differently:
+  
+    ##if the object is a SpatRaster
+    if (inherits(obj, "SpatRaster")){
+      
+      #if the object is a raster stack (has more than one layer):
+      if (nlyr(obj) > 1) {
+        
+        ##for each layer of the raster stack
+        for (layer_name in names(obj)) {
+          
+          #extract the layer
+          layer <- obj[[layer_name]] 
+        
+          #extract the spatial properties for this layer:
+        
+          ##extract the resolution (cell size) as a string with 5 decimals
+          resolution <- paste(round(res(obj), 5), collapse = ", ")
+        
+          ##extract the extent (raster size) as a string with 2 decimals
+          extent <- paste(round(ext(obj), 2), collapse = ", ")
+        
+          ##extract the origin (0,0) as a string with 7 decimals
+          origin <- paste(round(origin(obj), 7), collapse = ", ") 
+    
+          ##extract the crs from the current object
+          crs <- terra::crs(obj)
+    
+          #extract the EPSG ID part from the CRS string to make the CRS easier to read
+          crs_id <- sub('.*ID\\["EPSG",(\\d+)\\].*', 'EPSG:\\1', as.character(crs))
+    
+          #add the new information to the tibble for raster properties
+          spatial_properties <- spatial_properties %>%
+            add_row(name = layer_name,
+                    resolution = resolution,
+                    extent = extent,
+                    origin = origin,
+                    crs = crs_id)
+          }
+        
+        #if the object is a single raster:  
+        } else {
+          
+          #extract the spatial properties for this layer:
+          
+          ##extract the resolution (cell size) as a string with 5 decimals
+          resolution <- paste(round(res(obj), 5), collapse = ", ")
+    
+          ##extract the extent (raster size) as a string with 2 decimals
+          extent <- paste(round(ext(obj), 2), collapse = ", ")
+       
+          ##extract the origin (0,0) as a string with 7 decimals
+          origin <- paste(round(origin(obj), 7), collapse = ", ") 
+    
+          ##extract the crs from the current object
+          crs <- terra::crs(obj)
+          
+          #extract the EPSG ID part from the CRS string to make the CRS easier to read
+          crs_id <- sub('.*ID\\["EPSG",(\\d+)\\].*', 'EPSG:\\1', as.character(crs))
+    
+          #add the new information to the tibble for raster properties
+          spatial_properties <- spatial_properties %>%
+            add_row(name = file_name,
+                    resolution = resolution,
+                    extent = extent,
+                    origin = origin,
+                    crs = crs_id)
+          }
+      
+      ##if the object is a sf object  
+      } else if (inherits(obj, "sf")) {
+        
+        #extract the spatial properties for this layer:
+    
+        #extract the crs from the current object
+        crs <- sf::st_crs(obj)$wkt  
+        
+        #extract the EPSG ID part from the CRS string to make the CRS easier to read
+        crs_id <- sub('.*ID\\[\\\"(EPSG)\\\",(\\d+)\\].*', '\\1:\\2', as.character(crs))
+    
+        #add the new information to the tibble for raster properties
+        spatial_properties <- spatial_properties %>%
+          add_row(name = file_name,
+                  resolution = NA,
+                  extent = NA,
+                  origin = NA,
+                  crs = crs_id)
+      }
+
+  }
+  
+  #remove duplicate rows based on the "name" column that are generated for sf objects (inherently sf and dataframes)
+  spatial_properties <- spatial_properties %>%
+    distinct(name, .keep_all = TRUE)
+  
+  #create a tibble name to save
+  tibble_name <- paste0(list_name, "_tibble")
+  
+  #rename the tibble with the list name and save to the global environment 
+  return(assign(tibble_name, spatial_properties, envir = .GlobalEnv))
+}
+
+```
+
+
+### ii) Check CRS {#check_crs}
+
+This function can be used to verify that all the spatial objects in a list (both terra and sf compatible) have a pre-defined coordinate reference system (crs). This is necessary to ensure before any map algebra can be performed.
+
+The input is:
+
+-   obj: a list of spatial objects
+-   target_crs: a target crs that all the spatial objects in the list are compared against
+
+The output is:
+
+-   a logical (TRUE/FALSE) if the coordinate reference system of the object matches the target crs
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#write a function to verify that all the spatial objects have the same crs
+check_crs <- function(obj, target_crs) {
+  
+  #if the object is a "SpatRaster"
+  if (inherits(obj, "SpatRaster")) {
+    
+    #returns a logical (TRUE/FALSE) if the crs matches the target_crs (TRUE) or not (FALSE)
+    return(terra::crs(obj) == target_crs)  
+  
+  #if the object is an "sf object"    
+  } else if (inherits(obj, "sf")) {
+    
+    #returns a logical (TRUE/FALSE) if the crs matches the target_crs (TRUE) or not (FALSE)
+    return(st_crs(obj)$wkt == target_crs) ##need to use wkt since terra and sf print crs differently
+  } 
+}
+
+```
+
+
+### iii) Check Spatial Properties {#check_spatial}
+
+This function can be used to check that the geometric properties (resolution, extent, origin, and crs) of two spatial objects (compatible with terra and sf) match. This function is a modified version of the [extract_spatial_properties](#extract_spatial_properties) function.
+
+The input is:
+
+-   spatial_file_list: a list of spatial objects
+
+The output is:
+
+-   spatial_properties: a tibble with a column for the name of the spatial object, the resolution, extent, origin, and coordinate reference system (crs) and each entry will say "MATCH" or "DOES NOT MATCH"
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#write a modified version of the extract_spatial_properties function to check the spatial properties 
+check_spatial_properties <- function(spatial_file_list, ref_crs) {
+  
+  #create an empty tibble to hold the output
+  spatial_properties_check <- tibble(name = character(),
+                                     resolution_match = character(),
+                                     extent_match = character(),
+                                     origin_match = character(),
+                                     crs_match = character())
+  
+  #extract the name of the list 
+  list_name <- deparse(substitute(spatial_file_list))
+  
+  #we will use the first file in the list as the reference object for verification
+  ref_obj <- spatial_file_list[[1]]
+  
+  #now identify the spatial properties of the first object
+  
+  ##identify the reference resolution
+  ref_resolution <- paste(res(ref_obj), collapse = ", ")
+
+  ##identify the reference extent
+  ref_extent <- paste(ext(ref_obj), collapse = ", ")
+  
+  ##identify the reference origin
+  ref_origin <- paste(origin(ref_obj), collapse = ", ")
+  
+  ##identify the reference crs
+  ref_crs <- ref_crs
+  
+  #write a for loop to extract the properties into the tibble for review
+  for (file_name in names(spatial_file_list)) {
+    
+    #extract the current spatial object
+    obj <- spatial_file_list[[file_name]]
+    
+    #since we have sf objects and SpatRasters, we must handle them differently:
+  
+    ##if the object is a SpatRaster 
+    if (inherits(obj, "SpatRaster")){
+      
+      #if the object is a raster stack (has more than one layer):
+      if (nlyr(obj) > 1) {
+        
+        ##for each layer of the raster stack
+        for (layer_name in names(obj)) {
+          
+          #extract the layer
+          layer <- obj[[layer_name]] 
+        
+          #extract the spatial properties for this layer:
+        
+          ##extract the resolution (cell size) as a string
+          resolution <- paste(res(obj), collapse = ", ")
+        
+          ##extract the extent (raster size) as a string 
+          extent <- paste(ext(obj), collapse = ", ")
+        
+          ##extract the origin (0,0) as a string
+          origin <- paste(origin(obj), collapse = ", ") 
+    
+          ##extract the crs from the current object
+          crs <- terra::crs(obj)
+    
+          #check if resolution, extent, origin, and CRS match the reference raster
+          resolution_match <- ifelse(resolution == ref_resolution, "MATCH", "DOES NOT MATCH")
+          extent_match <- ifelse(extent == ref_extent, "MATCH", "DOES NOT MATCH")
+          origin_match <- ifelse(origin == ref_origin, "MATCH", "DOES NOT MATCH")
+          crs_match <- ifelse(crs == ref_crs, "MATCH", "DOES NOT MATCH")
+    
+          #add the new information to the tibble for raster properties
+          spatial_properties_check <- spatial_properties_check %>%
+            add_row(name = layer_name,
+                    resolution_match = resolution_match,
+                    extent_match = extent_match,
+                    origin_match = origin_match,
+                    crs_match = crs_match)
+        }
+        
+        #if the object is a single raster:  
+        } else {
+          #extract the spatial properties for this layer:
+          
+          ##extract the resolution (cell size) as a string
+          resolution <- paste(res(obj), collapse = ", ")
+        
+          ##extract the extent (raster size) as a string 
+          extent <- paste(ext(obj), collapse = ", ")
+        
+          ##extract the origin (0,0) as a string
+          origin <- paste(origin(obj), collapse = ", ") 
+    
+          ##extract the crs from the current object
+          crs <- terra::crs(obj)
+    
+          #check if resolution, extent, origin, and CRS match the reference raster
+          resolution_match <- ifelse(resolution == ref_resolution, "MATCH", "DOES NOT MATCH")
+          extent_match <- ifelse(extent == ref_extent, "MATCH", "DOES NOT MATCH")
+          origin_match <- ifelse(origin == ref_origin, "MATCH", "DOES NOT MATCH")
+          crs_match <- ifelse(crs == ref_crs, "MATCH", "DOES NOT MATCH")
+    
+          #add the new information to the tibble for raster properties
+          spatial_properties_check <- spatial_properties_check %>%
+            add_row(name = file_name,
+                    resolution_match = resolution_match,
+                    extent_match = extent_match,
+                    origin_match = origin_match,
+                    crs_match = crs_match)
+        }
+      
+      ##if the object is a sf object
+      } else if (inherits(obj, "sf")) {
+        
+        #extract the spatial properties for this layer:
+    
+        #extract the crs from the current object
+        crs <- sf::st_crs(obj)$wkt  
+        
+        #check that the CRS matches the ref_crs
+        crs_match <- ifelse(crs == ref_crs, "MATCH", "DOES NOT MATCH")
+    
+        #add the new information to the tibble for raster properties
+        spatial_properties_check <- spatial_properties_check %>%
+          add_row(name = file_name,
+                  resolution_match = NA,
+                  extent_match = NA,
+                  origin_match = NA,
+                  crs_match = crs_match)
+      }
+    }
+  
+  #remove duplicate rows based on the "name" column that are generated for sf objects (inherently sf and dataframes)
+  spatial_properties_check <- spatial_properties_check %>%
+    distinct(name, .keep_all = TRUE)
+  
+  #create a tibble name to save
+  tibble_name <- paste0(list_name, "_tibble")
+  
+  #rename the tibble with the list name and save to the global environment 
+  return(assign(tibble_name, spatial_properties_check, envir = .GlobalEnv))
+}
+  
+```
+
+
+## c) Analysis {#analysis}
+
+### i) Spatially Weighted Intensity (SWI) {#calculate_swi}
+
+This function can be used to calculate the [spatially weighted intensity](#tract_weight) based on the equations outlined [combined_status](#combined_status):
+
+The input is:
+
+-   homes_obj: the cleaned dataframe with the individual home geometries and light intensities
+
+The output is:
+
+-   swi_df: a copy of the homes_obj containing a column for the swi
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#write a function to calculate the spatially weighted intensity 
+calculate_swi <- function(homes_obj) {
+  
+  #calculate the area of each home and make a new column with this value
+  homes_obj <- homes_obj %>%
+    mutate(area = as.numeric(st_area(geometry))) #calculate the area of each individual home
+  #calculate the spatially weighted intensity
+  swi_df <- homes_obj %>% 
+    group_by(tract_id) %>% #group the homes_obj by tract_id
+    summarize(weighted_intensity_num = sum(intensity * area), #calculate the numerator of the spatially weighted intensity value
+              total_area = sum(area, na.rm = TRUE)) %>% #calculate the denominator of the spatially weighted intensity value
+    mutate(swi = weighted_intensity_num / total_area) %>% #calculate the spatially weighted intensity
+    select(tract_id, swi) %>% #only keep the necessary columns
+  st_drop_geometry() #drop the geometries 
+  
+  #return the swi_df to the Global Environment
+  return(swi_df)
+}
+
+```
+
+
+### ii) Home Weighted Intensity (HWI) {#calculate_hwi}
+
+This function can be used to calculate the [home weighted intensity](#home_weight) based on the equations outlined [combined_status](#combined_status):
+
+The input is:
+
+-   tract_obj: the cleaned dataframe with the census tract geometries and light intensities
+
+The output is:
+
+-   hwi_df: a copy of the tract_obj containing a column for the hwi
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#write a function to calculate the home weighted intensity 
+calculate_hwi <- function(tract_obj) {
+  
+  #add a column to the tract_obj with the home weighted intensity
+  hwi_df <- tract_obj %>%
+    mutate(hwi = intensity / total_homes) #calculate the intensity based on the total_number of homes 
+  
+  #return the hwi_df to the Global Environment
+  return(hwi_df)
+}
+
+```
+
+
+### iii) Combined Weighted Intensity {#calculate_cwi}
+
+This function can be used to calculate the [combined weighted intensity](#combined_weight) based on the equations outlined [combined_status](#combined_status):
+
+The input is:
+
+-   swi_df: the dataframe generated from the [calculate_swi](#calculate_swi) function
+-   hwi_df: the dataframe generated from the [calculate_hwi](#calculate_hwi) function
+
+The output is:
+
+-   cwi_df: a combination of swi_df and hwi_df with a new column with the cwi
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#write a function to calculate the combined weighted intensity 
+calculate_cwi <- function(swi_df, hwi_df) {
+  
+  #merge the dataframes
+  cwi_df <- swi_df %>%
+    left_join(hwi_df, by = "tract_id") %>% #add the hwi_df onto the swi_df
+    mutate(geometry = st_geometry(hwi_df)) %>% #make sure the geometry is valid
+    mutate(cwi = (swi + hwi) / 2) %>% #create a new column with the combined weighted intensity
+
+  #return the cwi_df to the Global Environment
+  return(cwi_df)
+}
+
+```
+
+
+### iv) Generate Density Plots {#density_plots}
+
+This function can be used to create density plots based on the distribution of median household income for various levels of classification:
+
+Colors:
+
+1.   Blackout Classification:
+   -  We will visualize the blackout regions in [dark gray]{style="color:steelblue4"}.
+2.   No Blackout Classification:
+   -  We will visualize the unaffected regions in [light green]{style="color:darkseagreen3"}.
+
+The input is:
+
+-   blackout_obj: the dataframe containing light intensity and various geometries 
+-   method: a character string for the method description to be used as the plots subtitle
+
+The output is:
+
+-   density_plot: a density plot for the blackout_obj
+
+    -   this plot is saved with the name "blackout_obj + _density_plot"
+    
+    -   this output is also saved to the density plots subfolder in the figures folder
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#assign a variable name for the blackout color
+blackout_color <- "steelblue4"
+
+#assign a variable name for the unaffected color
+unaffected_color <- "darkseagreen3"
+
+#write a function to create a density plot for the distribution of median household income 
+density_plots <- function(blackout_obj, method) {
+  
+  #extract the name of the data to save as the plots filename
+  filename <- deparse(substitute(blackout_obj))
+  
+  #drop the geometry from the object
+  blackout_obj <- blackout_obj %>%
+    st_drop_geometry()
+  
+  #create a ggplot with the blackout_obj
+  density_plot <- ggplot(blackout_obj, aes(x = income, fill = status)) +
+    geom_density(alpha = 0.6) +
+    scale_x_continuous(labels = scales::comma) + 
+    scale_fill_manual(values = c("blackout" = blackout_color, "no_blackout" = unaffected_color),
+                    labels = c("Blackout Area", "No Blackout")) +
+  labs(title = "Density Plot of Median Household Income",
+       x = "Median Household Income",
+       y = "Density",
+       fill = "Blackout Status",
+       subtitle = method) +
+  theme(plot.title = element_text(family = "Times New Roman", 
+                                  face = "bold",
+                                  size = 16,
+                                  hjust = 0.5),
+        axis.title = element_text(family = "Times New Roman",
+                                  face = "bold",
+                                  size = 14),
+        plot.subtitle = element_text(family = "Times New Roman",
+                                     size = 14,
+                                     hjust = 0.5),
+        axis.text = element_text(family = "Times New Roman",
+                                 size = 12),
+        legend.title = element_text(family = "Times New Roman",
+                                    face = "bold",
+                                    size = 12),
+        legend.text = element_text(family = "Times New Roman",
+                                   size = 10),
+        panel.grid.major = element_line(color = "gray85"),
+        panel.grid.minor = element_line(color = "gray90"),
+        panel.background = element_rect(fill = "white", color = NA),
+        plot.background = element_rect(color = "black", size = 2),
+        legend.position = "right",
+        legend.box.background = element_rect(color = "black", size = 1))
+  
+  #rename the plot with the object name + density_plot
+  plot_name <- paste(filename, "density_plot", sep = "_")
+  
+  #define the file path and file name for the plot output into the density_plots folder
+  png_path <- file.path(density_plots_folder, paste0(plot_name, ".png"))
+  
+  #save the plot as a png in the density_plots folder 
+  ggsave(density_plot, filename = png_path, width = 8, height = 6, dpi = 300)
+  
+  #return the renamed tmap object in the environment  
+  return(assign(plot_name, density_plot, envir = .GlobalEnv))
+}
+  
+```
+
+
+### v) Blackout Summary {#blackout_summary}
+
+This function can be used to create a tibble with a summary of the blackout classification analysis (number of homes that did or did not lose power, percentage of homes that did or did not lose power, and the average income of those that did and did not lose power) for various methods explored:
+
+The input is:
+
+-   blackout_obj: the dataframe containing light intensity, blackout status, and various geometries 
+
+The output is:
+
+-   blackout_summary_tibble: a blackout summary tibble for the blackout_obj
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#write a function to estimate the number of homes in Houston that lost power
+blackout_summary <- function(blackout_obj) {
+  
+  #extract the name of the data to save as the plots filename
+  filename <- deparse(substitute(blackout_obj))
+  
+  #check if the total homes has been calculated already; if so move forward with analysis
+  if ("total_homes" %in% colnames(blackout_obj)) {
+    
+    #create a new tibble  
+    blackout_summary_tibble <- blackout_obj %>%
+      group_by(status) %>% #group by status
+      summarise(n_homes = sum(total_homes), #sum total homes
+                avg_income = mean(income, na.rm = TRUE)) %>% #calculate avg_income
+      ungroup() %>%
+      mutate(status = recode(status, 
+                             "blackout" = "Blackout",
+                             "no_blackout" = "No Blackout"), 
+             percentage = round((n_homes / sum(n_homes)) * 100, 2), #add a percentage column
+             income = round(avg_income, 0), #add a column with average income no decimals
+             method = filename) %>% #add a column for the method
+      st_drop_geometry() %>% #drop the geometry
+      select(-avg_income) #remove this column
+  
+  #if there is not a total homes column, then perform this calculation first
+  } else {
+    
+    #create a new tibble
+    blackout_summary_tibble <- blackout_obj %>%
+      group_by(status) %>% #group by status
+      summarise(n_homes = n_distinct(osm_id), #count unique osm_ids if total_homes is absent
+                avg_income = mean(income, na.rm = TRUE)) %>% #calculate avg_income
+      ungroup() %>%
+      mutate(status = recode(status, 
+                             "blackout" = "Blackout",
+                             "no_blackout" = "No Blackout"), 
+             percentage = round((n_homes / sum(n_homes)) * 100, 2), #add a percentage column
+             income = round(avg_income, 0), #add a column with average income no decimals
+             method = filename) %>% #add a column for the method
+      st_drop_geometry() %>% #drop the geometry
+      select(-avg_income) #remove this column
+  }
+  
+  #create a tibble name to save
+  tibble_name <- paste0(filename, "_tibble")
+  
+  #rename the tibble with the filename and save to the global environment 
+  return(assign(tibble_name, blackout_summary_tibble, envir = .GlobalEnv))
+}
+
+```
+
+
+# IV. Set Up {#set_up}
+
+This [section](#set_up) sets up the filepaths and files for later analysis:
+
+-   [a) Define File Paths](#file_paths),
+-   [b) Load Data](#load_data),
+-   [c) Examine Geometric Properties](#examine_geometric_properties),
+-   [d) Houston Night Light](#houston_NL), and
+-   [e) Verify Geometric Properties](#verify_geometric_properties).
+
+## a) Define File Paths {#file_paths}
+
+### i) Input Data {#input_data}
+
+1.  Night Light Images:
+
+    -   To identify areas that experienced blackouts during the storm, we obtained remotely-sensed night light data for the Houston metropolis during the dates of interest.
+    -   This data was collected from NASA's [Visible Infrared Imaging Radiometer Suite (VIIRS)](https://en.wikipedia.org/wiki/Visible_Infrared_Imaging_Radiometer_Suite) onboard the Suomi satellite [@viirs_wikipedia].
+    -   This data was obtained through NASA’s [Level-1 and Atmospheric Archive & Distribution System Distributed Active Archive Center (LAADS DAAC)](https://ladsweb.modaps.eosdis.nasa.gov/) [@laads_daac_nasa].
+        -   This data is distributed in 10x10 degree tiles in sinusoidal equal-area projection, and tiles are identified by their horizontal and vertical position in the grid.
+        -   Houston lies on the border of tiles h08v05 and h08v06, so we need to download two tiles per date.
+    -   Several days had too much cloud cover to be useful, with only two days (2021-02-07 and 2021-02-16), generating clear, contrasting images to visualize the extent of the power outage in Texas.
+
+2.  Open Street Map Data:
+
+    -   To identify roads and homes in the area, we obtained [OpenStreetMap](https://www.openstreetmap.org/#map=4/38.01/-95.84) data for the Houston metropolis [@openstreetmap].
+    -   This data was distributed through [Geofabrik](https://download.geofabrik.de/) which contains information shapefiles for all the features in Texas prepared as a Geopackage (.gkpg file) [@geofabrik].
+
+    A.  Roads:
+
+        -   To identify highways within the area, we filtered the OSM roads data to just include "motorways" and "trunk" roads.
+        -   These two classifications were determined to be the most functionally important for motor vehicle traffic based on the [OSM Project Wiki](https://wiki.openstreetmap.org/wiki/Planet.osm) descriptions and rankings [@osm_project_wiki]:
+            -   motorway: "A restricted access major divided highway, normally with 2 or more running lanes plus emergency hard shoulder."
+            -   trunk: "The most important roads in a country's system that aren't motorways."
+                -   Trunk roads were included in this classification because the Texas metroplois contained highways that were disconnected without these features
+
+    B.  Homes:
+
+        -   To identify individuals residences within the area, we filtered the OSM homes data to just include personal accommodations based on the [OSM Project Wiki](https://wiki.openstreetmap.org/wiki/Planet.osm) descriptions and included [@osm_project_wiki]:
+
+            -   apartments: "A building arranged into individual dwellings, often on separate floors. May also have retail outlets on the ground floor."
+
+            -   detached: "A detached house, a free-standing residential building usually housing a single family."
+
+            -   house: "A dwelling unit inhabited by a single household (a family or small group sharing facilities such as a kitchen)."
+
+            -   residential: "A general tag for a building used primarily for residential purposes. Where additional detail is available consider using 'apartments', 'terrace', 'house', 'detached' or 'semidetached_house'."
+
+            -   semidetached house: "A residential house that shares a common wall with another on one side. Typically called a "duplex" in American English."
+
+            -   static caravan: "A mobile home (semi)permanently left on a single site."
+
+            -   terrace: "A single way used to define the outline of a linear row of residential dwellings, each of which normally has its own entrance, which form a terrace ("row-house" or "townhouse" in North American English)."
+
+3.  Socioeconomic Data:
+
+    -   To identify the median household income of the individual accommodations, we obtained census tract data from the [U.S. Census Bureau’s American Community Survey](https://www.census.gov/programs-surveys/acs) for 2019 [@acs_us_census].
+    -   Individual accommodations were then assigned a median household income based on the their spatially distribution within a census tract.
+    -   This data is an ArcGIS file geodatabase which is a multi-file proprietary format that’s roughly analogous to a GeoPackage file.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#define the path to access the night light data 
+NL_files <- list.files(here::here("data", "VNP46A1"),
+                       pattern = "*.tif", 
+                       full.names = TRUE)
+
+#define the path to access the open street map (OSM) data
+OSM_files <- list.files(here::here("data", "OSM"),
+                        pattern = "*.gpkg", 
+                        full.names = TRUE)
+
+#define the path to access the socioeconomic data
+socio_files <- here::here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb")
+
+```
+
+### ii) Output Data
+
+1.  maps_folder: All maps are saved to the maps subfolder within the figures folder
+2.  animations_folder: All map animations are saved to the animations subfolder within the figures folder
+3.  tables_folder: All tables/kables are saved to the tables subfolder within the figures folder
+4.  density_plots_folder: All density plots are saved to the density_plots subfolder within the figures folder
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#define the pathway to save to the maps subfolder in the figures folder
+maps_folder <- here::here("figures", "maps")
+
+#define the pathway to save to the animations subfolder in the figures folder
+animations_folder <- here::here("figures", "animations")
+
+#define the pathway to save to the tables subfolder in the figures folder
+tables_folder <- here::here("figures", "tables")
+
+#define the pathway to save to the density plots subfolder in the figures folder
+density_plots_folder <- here::here("figures", "density_plots")
+
+```
+
+## b) Load Data {#load_data}
+
+Now that we have defined the file paths, we can read in the necessary data:
+
+### i) Night Light Images
+
+The night light images from Visible Infrared Imaging Radiometer Suite (VIIRS) - VNP46A1 - were read in as individual SpatRasters with [@terra] and saved to the Global Environment and returned as list (NL_rast_list).
+
+-   Each image was saved under a name that started with NL (night light) + date (image data) + tile (tile number)
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+#| results: false
+
+#load in the night light Visible Infrared Imaging Radiometer Suite (VIIRS) - VNP46A1 - data from the Suomi satellite
+
+#create an empty list to store the individual raster objects 
+NL_rast_list <- list()
+
+#write a for loop to read in each raster file and rename each layer to have the format NL_date_tile
+for (file in NL_files) {
+  
+  #read in the raster from the file path
+  rast <- terra::rast(file)
+  
+  #extract the file basename for the current file
+  name <- basename(file)
+  
+  #extract the date from the file name
+  date <- str_extract(name, "A\\d{7}") %>%
+    str_sub(2,8) #remove the A from the name
+  
+  #extract the tile number from the file name
+  tile <- str_extract(name, "v\\d{2}") %>%
+    str_sub(2,3) #remove the v from the name
+  
+  #save the new name for the layer
+  new_name <- paste("NL", date, tile, sep = "_")
+  
+  #save the new raster to the global environment 
+  assign(new_name, rast, envir = .GlobalEnv)
+  
+  #store the renamed raster in the list 
+  NL_rast_list[[new_name]] <- rast
+
+}
+
+```
+
+### ii) Open Street Map Data {#osm_data}
+
+The open street map data was read in as an sf object with [@sf] for both the roads and building files.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+#| results: false
+
+#read in the open street map data for the roads 
+roads <- sf::st_read(OSM_files[str_detect(OSM_files, "roads")])
+
+#read in the open street map data for the buildings 
+buildings <- sf::st_read(OSM_files[str_detect(OSM_files, "buildings")])
+
+```
+
+### iii) Socioeconomic Data {#socio_data}
+
+The socioeconomic data was read in as an sf object with [@sf]. First, we examined the layers to explore the contents of the geodatabase. Each layer contains a subset of the fields documents in the [ACS metadata](https://www2.census.gov/geo/docs/maps-data/data/tiger/prejoined/ACSMetadata2011.txt) and relevant layers were isolated [@acs_metadata].
+
+-   The layer with the census tract geometries was read in and saved as census_geometry.
+
+-   The layer with the median household income from 2019 (in 2011 inflation-adjusted dollars) was read in and saved as census_income.
+
+-   These two layers were then joined by GEOID to generate the socioeconomic sf object which contained the geometries and median incomes for each census tract in the Houston metropolitan area.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#examine the layers of the socioeconomic files
+socio_layers <- st_layers(socio_files)
+
+#read in the layer that has the census geometry 
+census_geometry <- sf::read_sf(socio_files,
+                               layer = "ACS_2019_5YR_TRACT_48_TEXAS")
+
+#read in the layer that has the census income from that year 
+##we want to join the median household income from the previous 12 months to the census tract geometries
+##B19013e1:MEDIAN HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN 2011 INFLATION-ADJUSTED DOLLARS) - (Estimate)
+census_income <- sf::read_sf(socio_files,
+                             layer = "X19_INCOME") %>%
+  rename(GEOID_Data = GEOID) %>% #rename the column to match the census_geometry column name
+  dplyr::select(c("GEOID_Data", "B19013e1")) %>%
+  rename(income = B19013e1)
+
+#left bind on the income data from the census_income onto the census_geometry sf object
+socioeconomic <- left_join(census_geometry, census_income, by = "GEOID_Data") 
+
+```
+
+## c) Examine Geometric Properties {#examine_geometric_properties}
+
+Next, we need to examine the geometric properties (resolution, extent, origin, and coordinate reference system (crs)) for each of the spatial objects that we are working with. We will need to transform any spatial objects that have mismatched properties.
+
+### i) Identify Properties
+
+We will start by identifying the geometric properties of each of the spatial objects with the [extract_spatial_properties](#spatial_properties) function and save these properties in a table with the [standard_kable](#standard_kable) function:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#create a summary list with all the files
+properties_summary <- c(NL_rast_list,
+                        list(roads = roads,
+                             buildings = buildings,
+                             socioeconomic = socioeconomic))
+
+#identify the spatial properties of all the spatial files in the list
+identify_spatial_properties(properties_summary)
+
+#save the column names for the kable
+col_names <- c("Name" = "Name",
+               "Resolution" = "Resolution",
+               "Extent" = "Extent",
+               "Origin" = "Origin",
+               "CRS" = "CRS")
+
+#generate the kable from the tibble output
+standard_kable(properties_summary_tibble, col_names, caption = "Geometric Properties Identification Results")
+
+```
+
+
+It appears that the socioeconomic data has a different coordinate reference system (crs) than the other spatial objects.
+
+### ii) Transform CRS
+
+Therefore, we will transform the socioeconomic data to match the coordinate reference system (crs = EPSG:4326) of the other files.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#define the target CRS (EPSG:4326) to be used in the transformations
+target_crs <- st_crs(roads)$wkt
+
+#transform the socioeconomic data to the target crs
+socioeconomic <- st_transform(socioeconomic, target_crs)
+
+#create a summary list with all the files
+verify_crs <- c(NL_rast_list,
+                list(roads = roads,
+                     buildings = buildings,
+                     socioeconomic = socioeconomic))
+
+```
+
+
+### iii) Verify CRS Match
+
+Now verify that all of the spatial files have the same coordinate reference system with the [check_crs](#check_crs) function before continuing with analysis:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#check that all the files have the same crs (target_crs)
+all_crs_match <- sapply(verify_crs, check_crs, target_crs = target_crs)
+
+#verify that all the files have the same crs 
+if (all(all_crs_match)) {
+  
+  #if all the files have the same crs (all TRUE) then print
+  print("All spatial files have the target CRS")
+  
+} else {
+  
+  #if all the files do NOT have the same crs (at least one FALSE) then print
+  print("The following files do not match the target CRS:")
+  print(names(spatial_file_list)[!all_crs_match])
+}
+
+```
+
+Since all the spatial files have the same coordinate reference system, we can move to the analysis process.
+
+## d) Houston Night Light {#houston_NL}
+
+We are only interested in the Houston metropolis, so we need to clip the night light images to just contains the Houston area.
+
+### i) Combine Night Light Tiles
+
+Since Houston lies on the border of tiles h08v05 and h08v06, we first need to combine the tiles to create one SpatRaster object for each date.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#combine the 05 and 06 tiles from February 7th, 2021
+NL_02072021 <- terra::mosaic(NL_2021038_05, NL_2021038_06)
+
+#rename the layer to intensity
+names(NL_02072021) <- "intensity"
+
+#combine the 05 and 06 tiles from February 16th, 2021
+NL_02162021 <- terra::mosaic(NL_2021047_05, NL_2021047_06)
+
+#rename the layer to intensity
+names(NL_02162021) <- "intensity"
+
+```
+
+
+### ii) Crop Night Light Images
+
+Now that we have night light images for each date, we need to crop them to just the Houston area.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#create a boundary box for the Houston area
+houston_bbox <- st_bbox(c(xmin = -96.5, ymin = 29, xmax = -94.5, ymax = 30.5),
+                        crs = st_crs(NL_02072021)) 
+
+#crop the night light image from February 7th, 2021 to just the Houston area
+NL_02072021_crop <- terra::crop(NL_02072021, houston_bbox)
+
+#crop the night light image from February 16th, 2021 to just the Houston area
+NL_02162021_crop <- terra::crop(NL_02162021, houston_bbox)
+
+```
+
+
+## e) Verify Geometric Properties {#verify_geometric_properties}
+
+Finally, we need to verify that the spatial objects are compatible to be manipulated by ensuring the geometric properties have been successfully transformed with the [check_spatial_properties](#check_spatial) function and save these properties in a table with the [standard_kable](#standard_kable) function:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#create a summary list with all the files
+verify_properties <- list(NL_02072021_crop = NL_02072021_crop,
+                          NL_02162021_crop = NL_02162021_crop,
+                          roads = roads,
+                          buildings = buildings,
+                          socioeconomic = socioeconomic)
+
+#identify the spatial properties of all the files in the list
+spatial_file_check <- check_spatial_properties(verify_properties, ref_crs = target_crs)
+
+#save the column names for the kable
+col_names_v <- c("Name" = "Name",
+                 "Resolution" = "Resolution",
+                 "Extent" = "Extent",
+                 "Origin" = "Origin",
+                 "CRS" = "CRS")
+
+#generate the kable from the tibble output
+standard_kable(verify_properties_tibble, col_names_v, caption = "Geometric Properties Verification")
+
+```
+
+
+Since all the spatial files have the same geometric properties, we can move to the analysis process.
+
+# V. Visualize Night Light Intensity {#visualize_NL_intensity}
+
+To start, we will visualize the night light intensity from the images taken on February 7th, 2021 (before the storm) and February 16th, 2021 (after the storm), as well as the difference in night light intensity between those days. In this [section](#visualize_NL_intensity) we will visualize:
+
+-   [a) Before the Storm](#before),
+-   [b) After the Storm](#after),
+-   [c) Light Intensity Difference](#blackout), and
+-   [d) Animation](#animation).
+
+## a) Before the Storm {#before}
+
+We can use the [night_light_maps](#night_light_maps) function to visualize the light intensity from February 7th, 2021:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#visualize the nightlight data on February 7th 2021 (before the storm)
+tmap_mode("plot")
+
+night_light_maps(NL_02072021_crop, map_title = "Houston Nightlight Intensity from February 7, 2021")
+
+#visualize the map 
+NL_02072021_crop_map
+
+```
+
+## b) After the Storm {#after}
+
+Similarly, we can then use the [night_light_maps](#night_light_maps) function to visualize the light intensity from February 16th, 2021:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#visualize the nightlight data on February 16th 2021 (after the storm)
+tmap_mode("plot")
+
+night_light_maps(NL_02162021_crop, map_title = "Houston Nightlight Intensity from February 16, 2021")
+
+#visualize the map 
+NL_02162021_crop_map
+
+```
+
+## c) Light Intensity Difference {#blackout}
+
+Then we need to use map algebra to calculate the difference in night light intensity between the two dates that will be attributed to the storm. We can then use the [night_light_maps](#night_light_maps) function again to visualize this difference in intensity:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#calculate the difference in night light intensity caused by the storm 
+blackout <- NL_02162021_crop - NL_02072021_crop
+
+#visualize the nightlight data on February 16th 2021 (after the storm)
+tmap_mode("plot")
+
+night_light_maps(blackout, map_title = "Difference in Nighlight Intensity")
+
+#visualize the map 
+blackout_map
+
+```
+
+## d) Animation {#animation}
+
+Finally, we can combine these images into an animation for easier comparison between the dates:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+#| results: false
+
+#save the animation to the animations folder
+animation_file <- file.path(animations_folder, "nightlight_intensity_animation.gif")
+
+#create a gif animation from the before storm, after the storm, and light intensity difference
+animation <- tmap_animation(list(NL_02072021_crop_map, NL_02162021_crop_map, blackout_map),
+                            delay = 100, #100ms delay between images
+                            width = 800,
+                            height = 600, 
+                            filename = animation_file)
+
+```
+
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+#| echo: false
+
+#visualize the animation 
+htmltools::tags$img(src = animation_file, width = "800px", height = "600px")
+
+```
+
+
+# VI. Blackout Status {#blackout_status}
+
+In this [section](#blackout_status) we examine the blackout status at different spatial scales:
+
+-   [a) Classify Individual Homes](#home_blackout) and
+-   [b) Classify Census Tracts](#tract_blackout). 
+
+## a) Classify Individual Homes {#home_blackout}
+
+From our three data sources, the [Open Street Map](#osm_data) has the **finest** spatial resolution and provides polygons for **individual homes** [@osm_project_wiki]. One way we can determine the blackout classification is by assigning individual homes a blackout status (blackout or no blackout) by overlaying the homes on the night light intensity difference (blackout) data and extracting the average difference in intensity for each area.
+
+### i) Subset to Residential Areas
+
+First, we need to subset the buildings data to only contain the residential buildings that were identified [above](#input_data):
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#subset the buildings data to only contain residential buildings
+homes <- buildings %>%
+  filter(type %in% c("apartments", "detached", "house", "residential", "semidetached_house", "static_caravan", "terrace"))
+
+#clean the data to only include the house ID (osm_id) and the geometry (geom)
+homes <- homes %>%
+  select(osm_id, geom) %>%
+  rename(geometry = geom)
+
+```
+
+
+### ii) Extract Light Intensities
+
+Then, for each home, we can calculate the average night light intensity for the corresponding area using the blackout mask generated from the difference in light intensity before and after the storm.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#extract the night light intensity for each home by finding the average intensity for the home area
+homes_intensity <- terra::extract(blackout, homes,
+                                  fun = mean) #calculate the average intensity 
+
+#add this intensity back to the original sf object 
+homes$intensity <- homes_intensity$intensity
+
+#ensure that the geometries are still valid
+homes <- homes %>%
+  st_make_valid()
+
+```
+
+
+### iii) Blackout Status
+
+Now that each home has an average night light intensity, we can classify the homes as having experienced a blackout or not with the following two classifications:
+
+1.  blackout: any location that experienced a drop of **MORE** than 200 nW cm$^{-2}$ sr$^{-1}$ as **HAVING** experienced a blackout, and
+
+2.  no_blackout: any location that experienced a drop of **LESS** than 200 nW cm$^{-2}$ sr$^{-1}$ as **NOT** having experienced a blackout.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#add a column to the homes dataframe that classifies the home as having experienced a blackout (blackout) or not (no_blackout)
+homes <- homes %>%
+  mutate(status = ifelse(intensity < -200, "blackout", "no_blackout"))
+
+```
+
+
+### iv) Visualize {#home_visual}
+
+Let's visualize the extent of the blackouts based on classifications at the individual home level using the [blackout_status_maps](#blackout_status_maps) function:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#use the blackout_status_maps function to visualize the blackouts
+blackout_status_maps(homes, map_title = "Blackout Status: Individual Homes", zoom = 14)
+
+#visualize the map 
+homes_interactive_map
+
+```
+
+
+## b) Classify Census Tracts {#tract_blackout}
+
+Additionally, from our three data sources, the [Socioeconomic Data](#socio_data) has the **most coarse** spatial resolution and provides polygons for census tracts [@viirs_nasa_laads]. One way we can determine the blackout classification is by assigning **census tracts** a blackout status (blackout or no blackout) by overlaying the census tracts on the night light intensity difference (blackout) data and extracting the average difference in intensity for each area.
+
+### i) Subset to Census Tracts {#sub_ct}
+
+First, we must subset the socioeconomic data to just contain the tracts within the Houston metropolitan area, and then tidy the data to remove any rows that might contains NA's:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#create a simple feature object from the Houston area bbox
+houston_area <- houston_bbox %>%
+  st_as_sfc()
+
+#subset the socioeconomic data to just the Houston area
+houston_socioeconomic <- socioeconomic %>%
+  st_filter(y = houston_area, .predicate = st_intersects) 
+
+#tidy the data
+houston_socioeconomic <- houston_socioeconomic %>%
+  rename(geometry = Shape) %>% #rename the Shape column to geometry
+  select(TRACTCE, income, geometry) %>% #only keep the necessary columns
+  rename(tract_id = TRACTCE) %>% #rename the TRACTCE column to tract_id
+  filter(!is.na(income)) %>% #remove the rows that don't have an income 
+  filter(!is.na(tract_id)) #remove the rows that don't have a tract_id
+
+#create a copy of the subsetted socioeconomic data to manipulate below
+tracts <- houston_socioeconomic
+  
+```
+
+
+### ii) Extract Light Intensities
+
+Then, for each tract, we can calculate the average night light intensity for the corresponding area using the blackout mask generated from the difference in light intensity before and after the storm.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#extract the night light intensity for each tract by finding the average intensity for the tract area
+census_intensity <- terra::extract(blackout, tracts,
+                                   fun = mean) #calculate the average intensity 
+
+#add this intensity back to the original sf object 
+tracts$intensity <- census_intensity$intensity
+
+#ensure that the geometries are still valid
+tracts <- tracts %>%
+  st_make_valid()
+
+```
+
+
+### iii) Blackout Status
+
+Now that each census tract has an average night light intensity, we can classify the tract as having experienced a blackout or not with the following two classifications:
+
+1.  blackout: any location that experienced a drop of **MORE** than 200 nW cm$^{-2}$ sr$^{-1}$ as **HAVING** experienced a blackout, and
+
+2.  no_blackout: any location that experienced a drop of **LESS** than 200 nW cm$^{-2}$ sr$^{-1}$ as **NOT** having experienced a blackout.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#add a column to the houston_socioeconomic dataframe that classifies the tracts as having experienced a blackout (blackout) or not (no_blackout)
+tracts <- tracts %>%
+  mutate(status = ifelse(intensity < -200, "blackout", "no_blackout"))
+
+```
+
+
+### iv) Visualize {#tract_visual}
+
+Let's visualize the extent of the blackouts based on classifications at the census tract level using the [blackout_status_maps](#blackout_status_maps) function:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#use the blackout_status_maps function to visualize the blackouts
+blackout_status_maps(tracts, map_title = "Blackout Status: Census Tracts", zoom = 10)
+
+#visualize the map 
+tracts_interactive_map
+
+```
+
+
+
+# VII. Assign Homes to Census Tracts {#assign_tracts}
+
+This [section](#assign_tracts) will then assign individual homes to the appropriate census tracts from the Houston metropolis:
+
+-   [a) Combine Socioeconomic and Homes Data](#combine_data),
+-   [b) Identify Homes Without Socioeconomic Data](#wo_socio),
+-   [c) Identify Remaining Homes](#remaining_homes), and
+-   [d) Final Socioeconomic Data](#final_socio).
+
+## a) Combine Socioeconomic and Homes Data {#combine_data}
+
+Before moving forward, we need to combine the socioeconomic data with the OSM homes data. Then we can assign each home to the appropriate census tract; thereby, joining the socioeconomic data (median household income) to the blackout classifications.
+
+### i) Join Socioeconomic Data
+
+We can join the attributes (tract ID and income) from the socioeconomic data to the homes data so that each home has a corresponding tract ID and median household income.
+
+-   **Note:** It is important to note the use of **st_within** when joining the census tract data to the homes data. This spatial join will maintain the attributes and geometries of the first object (homes) while adding on the attributes from the second object (houston_socioeconomic) **ONLY IF** the **ENTIRE** geometry of the first object (homes) is contained within the geometry of the second object (houston_socioeconomic). This will allow us to ensure that all of the homes have been assigned a census tract and that no homes are duplicated.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#join the attributes (tract_id and income) from the socioeconomic data to the homes data
+houston_homes <- st_join(homes, #maintain this dataframes attributes and geometries
+                         houston_socioeconomic, #add the attributes from this dataframe
+                         join = st_within) #only add attributes to the homes that fall ENTIRELY within a census tract
+
+```
+
+
+### ii) Verify Correct Binds {#binds_one}
+
+Before proceeding, we want to verify that all of the homes have been assigned to a census tract and that none of the homes have been assigned to multiple census tracts.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#check if any homes are not assigned to a census tract 
+unassigned_homes <- houston_homes %>%
+  filter(is.na(tract_id))
+
+#determine how many homes were not assigned to a census tract
+n_unassigned <- nrow(unassigned_homes)
+
+#check if any homes are duplicated 
+duplicated_homes <- houston_homes %>%
+  filter(duplicated(osm_id))
+
+#determine how many homes were duplicated 
+n_duplicated <- nrow(duplicated_homes)
+
+#if there are no unassigned homes AND no duplicated homes 
+if (n_unassigned == 0 && n_duplicated == 0) {
+  
+  #print a message
+  print("No homes are unassigned and no homes are duplicated. Proceed with analysis.")
+  
+  #if there unassigned homes or duplicated homes
+  } else {
+  
+  #if there are unassigned homes
+  if (n_unassigned > 0) {
+    
+    #print a warning message
+    warning(paste("Critical Issue: There are", n_unassigned, "UNASSIGNED homes. Fix this before proceeding."))
+  }
+  
+  #if there are duplicated homes
+  if (n_duplicated > 0) {
+    
+    #print a warning message
+    warning(paste("Critical Issue: There are", n_duplicated, "DUPLICATED homes. Fix this before proceeding."))
+  }
+}
+
+```
+
+
+It appears that there are **37** homes which have **NOT** been assigned to a census tract. This means that these homes are either **OUTSIDE** of any census tracts or are within **MULTIPLE** tracts.
+
+Now that we have identified the 37 *complicated* homes we need to determine if they are either:
+
+1.  <a id="outside"><b>OUTSIDE</b></a> of any census tracts (these are homes which do **NOT** have **ANY** spatial overlay with the socioeconomic data subsetted for the Houston metropolis)
+2.  <a id="multiple"><b>OR</b></a> it means they spatially overlap **MULTIPLE** census tracts
+
+## b) Identify Homes Without Socioeconomic Data {#wo_socio}
+
+We will start by evaluating the [first possibility](#outside) by identifying the homes that are **OUTSIDE** of any census tracts and do **NOT** have socioeconomic data:
+
+-   **Note:** We will use st_disjoint to determine if there are any homes with geometries that do **NOT** overlap with any of the census tracts.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#identify if there are any homes that are not assigned to a census tract 
+no_tracts <- apply(st_disjoint(homes, houston_socioeconomic, sparse = FALSE), #determines if there are homes that are not in a census tract as a matrix
+                   1, all) #check all rows (homes)
+
+#check if any homes are not assigned to a census tract 
+no_tract_homes <- houston_homes %>%
+  filter(no_tracts)
+
+```
+
+
+It appears that there are **twelve** homes that do **NOT** have corresponding socioeconomic data. This means that there are still **twenty-five** homes that have not be assigned to a census tract.
+
+## c) Identify Remaining Homes {#remaining_homes}
+
+This means that these **twenty-five** homes fall into [option two](#multiple) and do **NOT** lie **ENTIRELY** within one census tract, so we must determine how to classify these homes to a tract.
+
+### i) Isolate Remaining Homes
+
+To isolate the remaining homes, we can filter the unassigned_homes data that contains the original thirty-seven homes to only include the **twenty-five** homes (osm_id) that were **NOT** identified in the [previous chunk](#wo_socio) as not corresponding to a census tract (the twelve homes we just found):
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#remove the homes that we determined to not correspond to a census tract
+unassigned_homes <- unassigned_homes %>%
+  filter(!osm_id %in% no_tract_homes$osm_id) %>% #remove the homes that are in the no_tract_homes dataframe
+  select(osm_id, intensity, status, geometry) #only keep the relevant columns 
+
+```
+
+
+### ii) Assign Remaining Homes {#homes_remain}
+
+Now we can assign the remaining homes to the appropriate census tract based on their spatial relationships with the different tracts. This is accomplished by choosing the census tract which contains the **LARGEST** area of that home.
+
+-   **Note:** It is important to note the use of **st_intersect and largest = TRUE** when joining the census tract data to the unassigned homes data. This spatial join will maintain the attributes and geometries of the first object (unassigned_homes) while adding on the attributes from the second object (houston_socioeconomic) by determining the overlapping area of the first object (unassigned_homes) and different polygons (different tracts) in the second object (houston_socioeconomic). It will then only assign the attributes corresponding to the **LARGEST** overlapping geometry. This will allow us to ensure that these are homes are assigned to a census tract based on it's spatial properties.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+#| results: false
+
+#assign the remaining homes to a census tract by joining the attributes (tract_id and income) from the socioeconomic data to the homes data
+remaining_homes <- st_join(unassigned_homes, #maintain this dataframes attributes and geometries
+                           houston_socioeconomic, #add the attributes from this dataframe
+                           join = st_intersects, largest = TRUE) #only add attributes to the home that has the LARGEST overlap with each of the features
+
+```
+
+
+## d) Final Socioeconomic Data {#final_socio}
+
+Now that we have assigned **ALL** the homes to a census tract, we need to create a final dataframe that contains **ONLY** the homes that have been *assigned* to a tract. This means we want to exclude the **twelve** homes identified [above](#wo_socio) from the final dataset.
+
+### i) Recombine Dataframes
+
+To start we need to *remove* the **original thirty-seven** unassigned homes from the houston_homes dataframe and then *add* back the **twenty-five** [remaining homes](#homes_remain) that we just assigned to the appropriate census tracts.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#add the remaining homes back to the houston_homes dataframe
+houston_homes <- houston_homes %>%
+  filter(!is.na(tract_id)) %>% #remove the 37 rows without tract IDs
+  bind_rows(remaining_homes) #add back the 25 rows of
+
+```
+
+
+### ii) Verify Correct Binds
+
+Following the same logic from [above](#binds_one), we can verify that all of the homes that should have been assigned to a census tract have been assigned to one.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#check if any homes are not assigned to a census tract 
+unassigned_homes <- houston_homes %>%
+  filter(is.na(tract_id))
+
+#determine how many homes were not assigned to a census tract
+n_unassigned <- nrow(unassigned_homes)
+
+#check if any homes are duplicated 
+duplicated_homes <- houston_homes %>%
+  filter(duplicated(osm_id))
+
+#determine how many homes were duplicated 
+n_duplicated <- nrow(duplicated_homes)
+
+#if there are no unassigned homes AND no duplicated homes 
+if (n_unassigned == 0 && n_duplicated == 0) {
+  
+  #print a message
+  print("No homes are unassigned and no homes are duplicated. Proceed with analysis.")
+  
+  #if there unassigned homes or duplicated homes
+  } else {
+  
+  #if there are unassigned homes
+  if (n_unassigned > 0) {
+    
+    #print a warning message
+    warning(paste("Critical Issue: There are", n_unassigned, "UNASSIGNED homes. Fix this before proceeding."))
+  }
+  
+  #if there are duplicated homes
+  if (n_duplicated > 0) {
+    
+    #print a warning message
+    warning(paste("Critical Issue: There are", n_duplicated, "DUPLICATED homes. Fix this before proceeding."))
+  }
+}
+
+```
+
+
+# VIII. Combined Blackout Status Classification {#combined_status}
+
+This [section](#combined_status) examines the blackout status using a **combined metric** approach:
+
+-   [a) Outline](#outline),
+-   [b) Classify Combined Approach](#class_combined),
+-   [c) Verify Total Homes](#total_home_check),
+-   [d) Calculations](#calculations), 
+-   [e) Blackout Status](#combined_blackout_class), and
+-   [f) Visualize](#combined_visual). 
+
+## a) Outline {#outline}
+
+In the previous [Blackout Status](#blackout_status) section, we examined the blackout status for the two different spatial scales; the more refined [(individual home)](#home_blackout) level, and the coarser [(census tract)](#tract_blackout) level. We will now use a **combined metric** approach to try mediating for the large variations in the spatial resolutions:
+
+In attempt to account for the inherent biases and limitations associated with each of the two methods ([individual home](#home_blackout) and [census tract](#tract_blackout)) from the [previous section](#blackout_status), we are also using a **combined metric** approach. This can be used to provide a more nuanced classification of the blackout status in relation to the socioeconomic demographics.
+
+### i) VIIRS Remote Sensing Images
+
+The [Visible Infrared Imaging Radiometer Suite (VIIRS)](https://en.wikipedia.org/wiki/Visible_Infrared_Imaging_Radiometer_Suite) has a spatial resolution of 750m meaning each pixel represents a 750m × 750m square [@viirs_nasa_laads]. This means that these remote sensing images have a **finer** resolution than the [Socioeconomic Data](#socio_data) but a **coarser** resolution than the [Open Street Map](#osm_data) [@acs_metadata; @osm_project_wiki].
+
+As a result of the resolution variations, the home-level classifications and tract-level classifications each come with their own advantages and limitations.
+
+### ii) Home-Level Classifications
+
+Using a home-level blackout status classification approach, as we did in the [individual home](#home_blackout) section, has the following advantages and limitations:
+
+1.  **Advantages:**
+    -   it allows us to examine *localized variations* in night light intensity
+2.  <a id="home_limit"><b>Limitations:</b></a> 
+    -   it may fail to capture *regional trends* across the larger census tracts
+    -   the [Open Street Map](#osm_data) is *very sparse* relative to the size of the census tracts with some census tracts having over 500 representative homes and some tracts having only one homes [@osm_project_wiki].
+
+To address these [limitations](#home_limit), we can use a [**spatially weighted**](#tract_weight) metric to account for the *heterogeneity* in data availability. Then we can use *homes as a proxy for population* and house density as a proxy for population density. 
+
+### iii) Tract-Level Classifications
+
+Using a tract-level blackout status classification approach, as we did in the [census tract](#tract_blackout) section, has the following advantages and limitations:
+
+1.  **Advantages:**
+    -   it allows us to examine broader *regional trends* in night light intensity across census tracts
+2.  <a id="tract_limit"><b>Limitations:</b></a> 
+    -   it may fail to capture *localized variations* within some census tracts
+    -   since the [census tracts](#socio_data) are so much **larger** than the individual homes, tracts often contain homes that are classified as blackout and homes classified as unaffected [@acs_metadata]
+    
+To avoid this [limitations](#tract_limit), we can use a [**home weighted**](#home_weight) metric to adapt the available OSM data to provide a tract level perspective.
+
+-   **NOTE:** It is important to note that we are discussing socioeconomic trends at the [tract level](#socio_data) because the median household income within a tract is the finest scale at which this type of data is available [@acs_metadata]. Therefore analyzing blackout impacts at the tract level allows a direct correlation between night light intensity changes and socioeconomic factors. Aggregating home level data to the tract level ensures that blackout intensity metrics can be compared directly with the median household income. 
+
+### iv) Combined Approach
+
+So now let's try to capture the advantages of both methods while minimizing their limitations. To do this, we can create a classification that reflects *localized variations* and *regional trends* by using a **combined weighted intensity**. 
+
+1.  <a id="combined_weight"><b>Combined Weighted Intensity</b></a> 
+
+$$
+CWI_i = \frac{SWI_i + HWI_i}{2}
+$$
+
+-   Where:
+$$
+\begin{aligned}
+    &\text{- } CWI_i: \text{ combined weighted intensity for tract } i \\
+    &\text{- } SWI_i: \text{ spatially weighted intensity for tract } i \\
+    &\text{- } HWI_i: \text{ home weighted intensity for tract } i
+\end{aligned}
+$$
+    
+2.  <a id="tract_weight"><b>Spatially Weighted Intensity</b></a> 
+
+$$
+SWI_i = \frac{\sum_{j=1}^{H_i} \left( I_{ij} \cdot A_{ij} \right)}{\sum_{j=1}^{H_i} A_{ij}}
+$$
+
+-   Numerator: weighted sum of intensities for all homes in the tract (areas as weights)
+-   Denominator: total area of all homes in the tract
+-   Where:
+$$
+\begin{aligned}
+    &\text{- } SWI_i: \text{ spatially weighted intensity for tract } i \\
+    &\text{- } I_{ij}: \text{ night light intensity difference for home } j \text{ in tract } i \\
+    &\text{- } A_{ij}: \text{ area of home } j \text{ in tract } i \\
+    &\text{- } H_i: \text{ total number of homes in tract } i
+\end{aligned}
+$$
+
+3.  <a id="home_weight"><b>Home Weighted Intensity</b></a> 
+
+$$
+HWI_i = \frac{I_i}{H_i}
+$$
+
+-   Where:
+$$
+\begin{aligned}
+    &\text{- } HWI_i: \text{ home weighted intensity for tract } i \\
+    &\text{- } I_i: \text{ tract-wide average intensity for tract } i \text{ defined as:} \\
+    &\quad\quad I_i = \frac{\sum_{j=1}^{H_i} I_{ij}}{H_i} \\
+    &\quad\quad\quad\text{- } H_i: \text{ total number of homes in tract } i
+\end{aligned}
+$$
+
+
+## b) Classify Combined Approach {#class_combined}
+
+But ... before we can do that, we must create a dataframe that contains all of the necessary information.
+
+### i) Calculate Homes per Tract
+
+First, we want to calculate how many homes we were able to identify for each census tract and create a new dataframe that contains the census tract data with a column (total_homes) with the total number of homes for that tract.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#create a dataframe with the total number of homes for each tract and keep the osm_id
+houston_ct <- houston_homes %>%
+  st_drop_geometry() %>% #drop the geometries
+  group_by(tract_id, status) %>% #group the houston_homes data by the tract_id 
+  summarise(total_homes = n_distinct(osm_id), #create a new column with the number of distinct homes
+            across(everything(), first, .names = "{.col}")) %>% #keep the other columns
+  ungroup() %>% #ungroup
+  select(-intensity, -osm_id) #drop the intensity and osm_id
+
+#create a dataframe with the total number of homes for each tract
+houston_tracts <- houston_homes %>%
+  st_drop_geometry() %>% #drop the geometries
+  group_by(tract_id) %>% #group the houston_homes data by the tract_id 
+  summarise(total_homes = n_distinct(osm_id)) #create a new column with the number of distinct homes
+
+#add the census tract geometry from the houston_socioeconomic data to the appropriate tracts in the houston_tracts data
+houston_tracts <- houston_socioeconomic %>%
+  left_join(houston_tracts, by = "tract_id") %>% #add the census tract geometries to the data
+  mutate(geometry = st_geometry(houston_socioeconomic)) %>% #make sure the geometry is valid
+  st_as_sf()
+
+```
+
+
+### ii) Extract Light Intensities
+
+Then, for each census tract, we can calculate the average night light intensity for the corresponding area using the blackout mask generated from the difference in light intensity before and after the storm.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#filter the houston_tracts data to only contain the tract_id and the geometry
+houston_tracts_df <- houston_tracts %>%
+  select(tract_id, geometry) #only keep the tract_id and geometry
+
+#extract the night light intensity for each census tract by finding the average intensity for the tract area
+tract_intensity <- terra::extract(blackout, houston_tracts_df,
+                                  fun = mean) #calculate the average intensity 
+
+#add this intensity back to the original sf object 
+houston_tracts$intensity <- tract_intensity$intensity
+
+#ensure that the geometries are still valid
+houston_tracts <- houston_tracts %>%
+  st_make_valid()
+
+```
+
+
+## c) Verify Total Homes {#total_home_check}
+
+Before continuing, let's verify that all of the homes that have been identified in the Houston metropolis (houston_homes) have been accounted for within the census tracts data (houston_tracts):
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#remove the tracts that do not have homes (this means there are no individual residences in the area)
+houston_tracts <- houston_tracts %>%
+  filter(!is.na(total_homes))
+
+#write a conditional statement to verify that all of the homes are accounted for 
+if ((sum(houston_tracts$total_homes) == nrow(houston_homes))) {
+  
+  #print this message
+  print("All homes in the Houston area have been accounted for within the Houston census tracts (houston_tracts) dataframe.")
+  
+  #if there are missing homes
+  } else {
+    
+    #print a warning
+    warning("WARNING: There are homes MISSING from the Houston census tracts (houston_tracts) dataframe.")
+  }
+
+```
+
+
+## d) Calculations {#calculations}
+
+Now we can finally proceed with the calculations! 
+
+### i) Spatially Weighted Intensity
+
+As discussed [above](#home_limit), some census tracts have more homes than others (in terms of available OSM data), so let's calculate the spatially weighted intensity using the [calculate_swi](#calculate_swi) function:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#calculate the spatially weighted intensity
+swi_df <- calculate_swi(houston_homes)
+
+```
+
+
+### ii) Home Weighted Intensity
+
+We can address the other [limitations](#tract_limit), by calculating the home weighted intensity using the [calculate_hwi](#calculate_hwi) function:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#calculate the home weighted intensity
+hwi_df <- calculate_hwi(houston_tracts)
+
+```
+
+
+### iii) Combined Weighted Intensity
+
+And finally we can use the [calculate_cwi](#calculate_cwi) function to combine these metrics and calculate a final combined weighted intensity that will be used to classify census tracts by blackout status:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#calculate the combined weighted intensity
+cwi_df <- calculate_cwi(swi_df, hwi_df)
+
+```
+
+
+## e) Blackout Status {#combined_blackout_class}
+
+Now that we have calculated the [**combined weighted intensity**](#combined_calc), we can classify the tracts as having experienced a blackout or not with the following two classifications:
+
+1.  blackout: any location that experienced a drop of **MORE** than 200 nW cm$^{-2}$ sr$^{-1}$ as **HAVING** experienced a blackout, and
+
+2.  no_blackout: any location that experienced a drop of **LESS** than 200 nW cm$^{-2}$ sr$^{-1}$ as **NOT** having experienced a blackout.
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#create a new dataframe that adds a column to the cwi_df dataframe that classifies the home as having experienced a blackout (blackout) or not (no_blackout)
+houston_final <- cwi_df %>%
+  mutate(status = ifelse(cwi < -200, "blackout", "no_blackout")) %>%
+  mutate(geometry = st_geometry(houston_tracts)) %>% #make sure the geometry is valid
+  st_as_sf()
+
+```
+
+
+## f) Visualize {#combined_visual}
+
+And once again, let's visualize the blackout classifications determined with the combined weighted intensity using the [blackout_status_maps](#blackout_status_maps) function:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#use the blackout_status_maps function to visualize the blackouts
+blackout_status_maps(houston_final, map_title = "Blackout Status: Combined Weighted Intensity", zoom = 10)
+
+#visualize the map 
+houston_final_interactive_map
+
+```
+
+
+# IX. Final Analysis {#final_analysis}
+
+Now that we have visualized the three different methods with maps; the [individual home](#home_visual) level, the [census tract](#tract_visual) level, and with the [combined approach](#combined_visual), we can explore additional qualitative comparisons through this [section](#final_analysis):
+
+-   [a) Density Plots](#plot_results),
+-   [b) Estimate of Homes that Lost Power](#estimate), and 
+-   [c) Summary](#summary).
+
+## a) Density Plots {#plot_results}
+
+To start, we can use the [density_plots](#density_plots) function to create a density plot to examine the distribution of areas that experienced blackouts based on the median household income: 
+
+### i) Individual Homes Level
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#create a density plot for the individual home level
+density_plots(houston_homes, method = "Individual Homes Level")
+
+#print the plot
+houston_homes_density_plot
+
+```
+
+
+### ii) Census Tract Level
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#create a density plot for the census tract level
+density_plots(tracts, method = "Census Tract Level")
+
+#print the plot
+tracts_density_plot
+
+```
+
+
+### iii) Combined Weighted Intensities
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#create a density plot for the combined weighted intensities method
+density_plots(houston_final, method = "Combined Weighted Intensities")
+
+#print the plot
+houston_final_density_plot
+
+```
+
+
+## b) Estimate of Homes that Lost Power {#estimate}
+
+Additionally, we can estimate the number of homes in Houston that lost power and the median household income based on the status (blackout or no blackout) with the [blackout_summary](#blackout_summary) function for each method:
+
+### i) Individual Homes Level
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#create a tibble for the individual home level
+blackout_summary(houston_homes) 
+
+#tidy the data
+houston_homes_tibble <- houston_homes_tibble %>%
+  select(method, everything()) %>% #move the method to be the first column
+  mutate(method = recode(method,"houston_homes" = "Individual Homes")) #rename the entries
+
+```
+
+
+### ii) Census Tract Level
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#create a tibble for the census tract level
+blackout_summary(houston_ct)
+
+#tidy the data
+houston_ct_tibble <- houston_ct_tibble %>%
+  select(method, everything()) %>% #move the method to be the first column
+  mutate(method = recode(method,"houston_ct" = "Census Tracts")) #rename the entries
+
+```
+
+
+### iii) Combined Weighted Intensities
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#create a tibble for the combined weighted intensities
+blackout_summary(houston_final)
+
+#tidy the data
+houston_final_tibble <- houston_final_tibble %>%
+  select(method, everything()) %>% #move the method to be the first column
+  mutate(method = recode(method,"houston_final" = "Combined Weighted Intensity")) #rename the entries
+
+```
+
+
+### iv) Combine Results {#estimate_results}
+
+Now we can combine the results and create a summary table with the [standard_kable](#standard_kable) function:
+
+```{r}
+#| warning: false
+#| message: false
+#| code-fold: true
+
+#combine the tibbles into one tibble
+combined_table <- bind_rows(houston_homes_tibble, houston_ct_tibble, houston_final_tibble)
+
+#save the column names for the kable
+col_names_s <- c("Method" = "Method",
+                 "Blackout Status" = "Blackout Status",
+                 "Number of Homes" = "Number of Homes",
+                 "Percentage of Homes" = "Percentage of Homes",
+                 "Average Income" = "Average Income")
+
+#generate the kable from the blackout_summary 
+standard_kable(combined_table, col_names_s, caption = "Blackout Status Summary for Homes in Houston")
+
+```
+
+
+## c) Summary {#summary}
+
+As we have worked towards accomplishing our original [objective](#motivation) to investigate potential socioeconomic factors that influenced recovery after the [The Great Texas Freeze](#great_freeze), we have [estimated the number of homes](#estimate_results) in the Houston metropolitan area that lost power and qualitatively investigated whether not these impacts were disproportionately felt through various maps ([individual homes](#home_visual), [census tracts](#tract_visual), and a [combined approach](#combined_visual)) and [density plots](#plot_results). This [analysis](#estimate_results) revealed differing results based on the method used to classify the blackout status. This is most readily apparent in the [blackout summary](#estimate_results) table.
+
+The first thing we notice is that using the [combined approach](#class_combined) drastically reduces the number of homes classified as experiencing a blackout from roughly 36% of the homes to approximately 11% of the homes. Interestingly enough, the first two methods provided an estimate more closely aligned with the roughly 40% officially reported in the final report [@austin2021]. However, although the number of homes classified as experiencing a blackout decreased using the combined approach, so did the average median household income which is nearly **ten thousand dollars** *LESS* than the other two methods. When we classify homes using the [individual homes](#home_blackout) method, the average median income of the homes that *experienced* a blackout is **HIGHER** than the homes that did *not* experience a blackout. But when we classify homes using the [census tract](#tract_blackout) method, the average income of the homes that *experienced* a blackout is approximately **EQUAL** to the average median income of the homes that did *not* experience a blackout. 
+
+Overall, there does not appear to an easily discernible relationship between the median household income and recovery after the storm. However, rather than concluding that there is no correlation between socioeconomic factors and disaster cover, this analysis highlights the lack of finely resolved spatially-explicit data. It is challenging to decipher relationships when the required data is *very sparse* and historically even **less** comprehensive for areas which are the most vulnerable to the negative impacts of the socioeconomic disparities. Increasing the temporal and spatial resolution of future datasets will be critical to accurately assessing trends in these factors. 
+
+# X. Citations
+
+::: {#refs}
+:::
+
