@@ -57,16 +57,40 @@ analytical methodologies, including:
 
 # Data
 
-    -   The first dataset contains remote sensing images from the [Visible Infrared Imaging Radiometer Suite (VIIRS)](https://en.wikipedia.org/wiki/Visible_Infrared_Imaging_Radiometer_Suite) onboard the Suomi satellite, which captures pre-storm and post-storm light intensity changes to evaluate blackout statuses spatially and temporally [@viirs_nasa_laads].
+- The first dataset contains remote sensing images from the [Visible
+  Infrared Imaging Radiometer Suite
+  (VIIRS)](https://en.wikipedia.org/wiki/Visible_Infrared_Imaging_Radiometer_Suite)
+  onboard the Suomi satellite, which captures pre-storm and post-storm
+  light intensity changes to evaluate blackout statuses spatially and
+  temporally (NASA LAADS DAAC 2023).
 
-    -   The second dataset is [Open Street Map (OSM)](https://www.openstreetmap.org/#map=4/38.01/-95.84) data for home-level resolution, including road networks and infrastructure to account for essential services and accessibility [@openstreetmap]. This contains two main datasets:
+<!-- -->
 
-    1. Roads:
-        -   Highways account for a large portion of the night lights observable from space, so to minimize falsely classifying areas that regularly experience reduced traffic levels as having experienced a blackout, we will ignore residential buildings that are within 200m of highways.
-    2.   Homes:
-        -   The OSM data contains information for all the buildings within the area, but we are only interested in considering residential buildings since we will be assigning socioeconomic status to these features based on census data.
+- The second dataset is [Open Street Map
+  (OSM)](https://www.openstreetmap.org/#map=4/38.01/-95.84) data for
+  home-level resolution, including road networks and infrastructure to
+  account for essential services and accessibility (OpenStreetMap
+  contributors 2023). This contains two main datasets:
+  1.  Roads:
+      - Highways account for a large portion of the night lights
+        observable from space, so to minimize falsely classifying areas
+        that regularly experience reduced traffic levels as having
+        experienced a blackout, we will ignore residential buildings
+        that are within 200m of highways.
+  2.  Homes:
+      - The OSM data contains information for all the buildings within
+        the area, but we are only interested in considering residential
+        buildings since we will be assigning socioeconomic status to
+        these features based on census data.
 
-    -   The final dataset contains 2019 census tract data collected by the [US Census Bureau's American Community Survey](https://www.census.gov/programs-surveys/acs) for the Houston metropolis. Census tract geometries were obtained from shapefiles, enabling spatial overlays and intersection analyses with blackout zones [@acs_us_census].
+<!-- -->
+
+- The final dataset contains 2019 census tract data collected by the [US
+  Census Bureau’s American Community
+  Survey](https://www.census.gov/programs-surveys/acs) for the Houston
+  metropolis. Census tract geometries were obtained from shapefiles,
+  enabling spatial overlays and intersection analyses with blackout
+  zones (US Census Bureau 2023).
 
 # Repository Structure
 
@@ -144,6 +168,20 @@ Müller, Kirill. 2020. *Here: A Simpler Way to Find Your Files*.
 
 </div>
 
+<div id="ref-viirs_nasa_laads" class="csl-entry">
+
+NASA LAADS DAAC. 2023. “VIIRS: Missions and Measurements.”
+<https://ladsweb.modaps.eosdis.nasa.gov/missions-and-measurements/viirs/>.
+
+</div>
+
+<div id="ref-openstreetmap" class="csl-entry">
+
+OpenStreetMap contributors. 2023. “OpenStreetMap.”
+<https://www.openstreetmap.org/#map=4/38.01/-95.84>.
+
+</div>
+
 <div id="ref-sf" class="csl-entry">
 
 Pebesma, Edzer. 2018. “<span class="nocase">Simple Features for R:
@@ -157,6 +195,13 @@ Standardized Support for Spatial Vector Data</span>.” *The R Journal* 10
 Tennekes, Martijn. 2018. “<span class="nocase">tmap</span>: Thematic
 Maps in R.” *Journal of Statistical Software* 84 (6): 1–39.
 <https://doi.org/10.18637/jss.v084.i06>.
+
+</div>
+
+<div id="ref-acs_us_census" class="csl-entry">
+
+US Census Bureau. 2023. “American Community Survey (ACS).”
+<https://www.census.gov/programs-surveys/acs>.
 
 </div>
 

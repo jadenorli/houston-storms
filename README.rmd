@@ -15,8 +15,7 @@ This repository contains an analysis of blackout impacts during the Great Texas 
 This repository showcases a range of advanced technical skills and analytical methodologies, including:
 
 1.  Data Management
-    -   Wrangling and tidying data using [@tidyverse], [@here], and
-        [@janitor] to ensure clean, reproducible workflows
+    -   Wrangling and tidying data using [@tidyverse], [@here], and [@janitor] to ensure clean, reproducible workflows
 
     -   Visualizations with [@ggplot2] and [@tmap]
 
@@ -24,36 +23,37 @@ This repository showcases a range of advanced technical skills and analytical me
 
     -   Integration of error handling and validation checks to maintain data integrity, including conditional statements for spatial and statistical consistency
 
-    -   Development of generalizable functions to allow for
-        reproducibility and flexibility in analyses
+    -   Development of generalizable functions to allow for reproducibility and flexibility in analyses
 2.  Geospatial Analysis
     -   Manipulating spatial data with [@terra] and [@sf], including advanced spatial operations such as intersections, raster manipulation, and spatial weighting
-    
+
     -   Creating dynamic, interactive visualizations using [@tmap] to explore and communicate geospatial data insights
-    
+
     -   Leveraging geospatial overlays and zonal statistics to assess the relationship between socioeconomic variables and blackout classifications
-    
+
     -   Standardizing spatial resolution and alignment across diverse datasets to ensure consistency in geospatial analyses
 3.  Analysis of Socioeconomic Disparities
     -   Integrating census tract-level socioeconomic data to explore disparities in blackout status following extreme weather events
 
     -   Employing spatially weighted methods to classify blackout status across multiple scales, from individual homes to census tracts
-    
+
     -   Comparing results from different classification approaches (e.g., individual home versus census tract level) to identify methodological differences and their implications for socioeconomic interpretations
 
 # Data
 
-    -   The first dataset contains remote sensing images from the [Visible Infrared Imaging Radiometer Suite (VIIRS)](https://en.wikipedia.org/wiki/Visible_Infrared_Imaging_Radiometer_Suite) onboard the Suomi satellite, which captures pre-storm and post-storm light intensity changes to evaluate blackout statuses spatially and temporally [@viirs_nasa_laads].
-    
-    -   The second dataset is [Open Street Map (OSM)](https://www.openstreetmap.org/#map=4/38.01/-95.84) data for home-level resolution, including road networks and infrastructure to account for essential services and accessibility [@openstreetmap]. This contains two main datasets:
-    
-    1. Roads:
-        -   Highways account for a large portion of the night lights observable from space, so to minimize falsely classifying areas that regularly experience reduced traffic levels as having experienced a blackout, we will ignore residential buildings that are within 200m of highways.
-    2.   Homes:
-        -   The OSM data contains information for all the buildings within the area, but we are only interested in considering residential buildings since we will be assigning socioeconomic status to these features based on census data.
-    
-    -   The final dataset contains 2019 census tract data collected by the [US Census Bureau's American Community Survey](https://www.census.gov/programs-surveys/acs) for the Houston metropolis. Census tract geometries were obtained from shapefiles, enabling spatial overlays and intersection analyses with blackout zones [@acs_us_census].
+-   The first dataset contains remote sensing images from the [Visible Infrared Imaging Radiometer Suite (VIIRS)](https://en.wikipedia.org/wiki/Visible_Infrared_Imaging_Radiometer_Suite) onboard the Suomi satellite, which captures pre-storm and post-storm light intensity changes to evaluate blackout statuses spatially and temporally [@viirs_nasa_laads].
 
+<!-- -->
+
+-   The second dataset is [Open Street Map (OSM)](https://www.openstreetmap.org/#map=4/38.01/-95.84) data for home-level resolution, including road networks and infrastructure to account for essential services and accessibility [@openstreetmap]. This contains two main datasets:
+    1.  Roads:
+        -   Highways account for a large portion of the night lights observable from space, so to minimize falsely classifying areas that regularly experience reduced traffic levels as having experienced a blackout, we will ignore residential buildings that are within 200m of highways.
+    2.  Homes:
+        -   The OSM data contains information for all the buildings within the area, but we are only interested in considering residential buildings since we will be assigning socioeconomic status to these features based on census data.
+
+<!-- -->
+
+-   The final dataset contains 2019 census tract data collected by the [US Census Bureau's American Community Survey](https://www.census.gov/programs-surveys/acs) for the Houston metropolis. Census tract geometries were obtained from shapefiles, enabling spatial overlays and intersection analyses with blackout zones [@acs_us_census].
 
 # Repository Structure
 
