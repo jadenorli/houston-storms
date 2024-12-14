@@ -14,10 +14,11 @@ This repository showcases a range of advanced technical skills and
 analytical methodologies, including:
 
 1.  Data Management
-    - Wrangling and tidying data using (Wickham et al. 2019), (Müller
-      2020), and (Firke 2023) to ensure clean, reproducible workflows
+    - Wrangling and tidying data using tidyverse, here, and janitor to
+      ensure clean, reproducible workflows (Wickham et al. 2019; Müller
+      2020; Firke 2023)
 
-    - Visualizations with (Wickham 2016) and (Tennekes 2018)
+    - Visualizations with ggplot2 and tmap (Wickham 2016; Tennekes 2018)
 
     - Implementation of organized folder structures and detailed
       documentation to facilitate reproducibility and collaborative
@@ -30,12 +31,12 @@ analytical methodologies, including:
     - Development of generalizable functions to allow for
       reproducibility and flexibility in analyses
 2.  Geospatial Analysis
-    - Manipulating spatial data with (Hijmans 2024) and (Pebesma 2018),
-      including advanced spatial operations such as intersections,
-      raster manipulation, and spatial weighting
+    - Manipulating spatial data with terra and sf, including advanced
+      spatial operations such as intersections, raster manipulation, and
+      spatial weighting (Hijmans 2024; Pebesma 2018)
 
-    - Creating dynamic, interactive visualizations using (Tennekes 2018)
-      to explore and communicate geospatial data insights
+    - Creating dynamic, interactive visualizations using tmap to explore
+      and communicate geospatial data insights (Tennekes 2018)
 
     - Leveraging geospatial overlays and zonal statistics to assess the
       relationship between socioeconomic variables and blackout

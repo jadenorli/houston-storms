@@ -15,9 +15,9 @@ This repository contains an analysis of blackout impacts during the Great Texas 
 This repository showcases a range of advanced technical skills and analytical methodologies, including:
 
 1.  Data Management
-    -   Wrangling and tidying data using [@tidyverse], [@here], and [@janitor] to ensure clean, reproducible workflows
+    -   Wrangling and tidying data using tidyverse, here, and janitor to ensure clean, reproducible workflows [@tidyverse; @here; @janitor]
 
-    -   Visualizations with [@ggplot2] and [@tmap]
+    -   Visualizations with ggplot2 and tmap [@ggplot2; @tmap]
 
     -   Implementation of organized folder structures and detailed documentation to facilitate reproducibility and collaborative potential
 
@@ -25,9 +25,9 @@ This repository showcases a range of advanced technical skills and analytical me
 
     -   Development of generalizable functions to allow for reproducibility and flexibility in analyses
 2.  Geospatial Analysis
-    -   Manipulating spatial data with [@terra] and [@sf], including advanced spatial operations such as intersections, raster manipulation, and spatial weighting
+    -   Manipulating spatial data with terra and sf, including advanced spatial operations such as intersections, raster manipulation, and spatial weighting [@terra; @sf]
 
-    -   Creating dynamic, interactive visualizations using [@tmap] to explore and communicate geospatial data insights
+    -   Creating dynamic, interactive visualizations using tmap to explore and communicate geospatial data insights [@tmap]
 
     -   Leveraging geospatial overlays and zonal statistics to assess the relationship between socioeconomic variables and blackout classifications
 
