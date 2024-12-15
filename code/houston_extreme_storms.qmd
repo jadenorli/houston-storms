@@ -94,7 +94,7 @@ All functions used in this workflow are outlined and defined in this [section](#
 
 ### i) Standard Kable Format {#standard_kable}
 
-This function can be used to generate a [@kableExtra] from a tibble or dataframe that is formatted to match the general formatting in this document.
+This function can be used to generate a Kable from a tibble or dataframe that is formatted to match the general formatting in this document [@kableExtra].
 
 The input is:
 
@@ -146,16 +146,16 @@ standard_kable <- function(data, col_names, caption_text) {
 ```
 
 
-### ii) Generate Night Light Maps
+### ii) Generate Night Light Maps {#night_light_maps}
 
-This function can be used to generate a [@tmap] from the nightlight data using the color palettes defined below for the dark and light regions of the display.
+This function can be used to generate a tmap from the nightlight data using the color palettes defined below for the dark and light regions of the display [@tmap].
 
 Colors:
 
 1.   Dark Palette:
-    - We will visualize the dark regions using a spectrum of colors ranging from <span style="background-color:midnightblue; padding:2px;">dark blue</span> to <span style="background-color:gray13; padding:2px;">dark gray</span>.
+    - We will visualize the dark regions using a spectrum of colors ranging from **<span style="background-color:midnightblue; padding:2px;">dark blue</span>** to **<span style="background-color:#212121; padding:2px;">dark gray</span>**.
 2.   Light Palette:
-    - We will visualize the light regions using a spectrum of colors ranging from <span style="background-color:darkgoldenrod1; padding:2px;">dark yellow</span> to <span style="background-color:lemonchiffon; padding:2px;">light yellow</span>.
+    - We will visualize the light regions using a spectrum of colors ranging from **<span style="background-color:#FFB90F; padding:2px;">dark yellow</span>** to **<span style="background-color:lemonchiffon; padding:2px;">light yellow</span>**.
 
 The input is:
 
@@ -268,16 +268,16 @@ night_light_maps <- function(data_obj, bbox_obj = NULL, map_title = NULL) {
 ```
 
 
-### iii) Generate Blackout Status Maps
+### iii) Generate Blackout Status Maps {#blackout_status_maps}
 
-This function can be used to generate an interactive [@tmap] for the blackout status classifications:
+This function can be used to generate an interactive tmap for the blackout status classifications [@tmap]:
 
 Colors:
 
 1.   Blackout Classification:
-    - We will visualize the blackout regions in <span style="background-color:#CAE1FF; padding:2px;">dark gray</span>.
+    - We will visualize the blackout regions in **<span style="background-color:#CAE1FF; padding:2px;">dark gray</span>**.
 2.   No Blackout Classification:
-    - We will visualize the unaffected regions in <span style="background-color:#C1FFC1; padding:2px;">light green</span>. 
+    - We will visualize the unaffected regions in **<span style="background-color:#C1FFC1; padding:2px;">light green</span>**. 
 
 The input is:
 
@@ -562,6 +562,7 @@ This function can be used to check that the geometric properties (resolution, ex
 The input is:
 
 -   spatial_file_list: a list of spatial objects
+-   ref_crs: a coordinate reference system (crs) used as the reference for comparison of list objects
 
 The output is:
 
@@ -1101,7 +1102,7 @@ Now that we have defined the file paths, we can read in the necessary data:
 
 ### i) Night Light Images
 
-The night light images from Visible Infrared Imaging Radiometer Suite (VIIRS) - VNP46A1 - were read in as individual SpatRasters with [@terra] and saved to the Global Environment and returned as list (NL_rast_list).
+The night light images from Visible Infrared Imaging Radiometer Suite (VIIRS) - VNP46A1 - were read in as individual SpatRasters with terra and saved to the Global Environment and returned as list (NL_rast_list) [@terra].
 
 -   Each image was saved under a name that started with NL (night light) + date (image data) + tile (tile number)
 
@@ -1148,7 +1149,7 @@ for (file in NL_files) {
 
 ### ii) Open Street Map Data {#osm_data}
 
-The open street map data was read in as an sf object with [@sf] for both the roads and building files.
+The open street map data was read in as an sf object with sf for both the roads and building files [@sf].
 
 ```{r}
 #| warning: false
@@ -1166,7 +1167,7 @@ buildings <- sf::st_read(OSM_files[str_detect(OSM_files, "buildings")])
 
 ### iii) Socioeconomic Data {#socio_data}
 
-The socioeconomic data was read in as an sf object with [@sf]. First, we examined the layers to explore the contents of the geodatabase. Each layer contains a subset of the fields documents in the [ACS metadata](https://www2.census.gov/geo/docs/maps-data/data/tiger/prejoined/ACSMetadata2011.txt) and relevant layers were isolated [@acs_metadata].
+The socioeconomic data was read in as an sf object with sf [@sf]. First, we examined the layers to explore the contents of the geodatabase. Each layer contains a subset of the fields documents in the [ACS metadata](https://www2.census.gov/geo/docs/maps-data/data/tiger/prejoined/ACSMetadata2011.txt) and relevant layers were isolated [@acs_metadata].
 
 -   The layer with the census tract geometries was read in and saved as census_geometry.
 
