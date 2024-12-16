@@ -67,13 +67,12 @@ analytical methodologies, including:
   light intensity changes to evaluate blackout statuses spatially and
   temporally (NASA LAADS DAAC 2023).
 
-<!-- -->
-
 - The second dataset is [Open Street Map
   (OSM)](https://www.openstreetmap.org/#map=4/38.01/-95.84) data for
   home-level resolution, including road networks and infrastructure to
   account for essential services and accessibility (OpenStreetMap
   contributors 2023). This contains two main datasets:
+
   1.  Roads:
       - Highways account for a large portion of the night lights
         observable from space, so to minimize falsely classifying areas
@@ -85,8 +84,6 @@ analytical methodologies, including:
         the area, but we are only interested in considering residential
         buildings since we will be assigning socioeconomic status to
         these features based on census data.
-
-<!-- -->
 
 - The final dataset contains 2019 census tract data collected by the [US
   Census Bureau’s American Community
