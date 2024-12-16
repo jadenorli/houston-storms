@@ -1231,7 +1231,9 @@ col_names <- c("Name" = "Name",
                "CRS" = "CRS")
 
 #generate the kable from the tibble output
-standard_kable(properties_summary_tibble, col_names, caption = "Geometric Properties Identification Results")
+standard_kable(properties_summary_tibble, 
+               col_names, 
+               caption = "Geometric Properties Identification Results")
 
 ```
 
@@ -1368,7 +1370,9 @@ col_names_v <- c("Name" = "Name",
                  "CRS" = "CRS")
 
 #generate the kable from the tibble output
-standard_kable(verify_properties_tibble, col_names_v, caption = "Geometric Properties Verification")
+standard_kable(verify_properties_tibble, 
+               col_names_v, 
+               caption = "Geometric Properties Verification")
 
 ```
 
@@ -1458,7 +1462,9 @@ Finally, we can combine these images into an animation for easier comparison bet
 animation_file <- file.path(animations_folder, "nightlight_intensity_animation.gif")
 
 #create a gif animation from the before storm, after the storm, and light intensity difference
-animation <- tmap_animation(list(NL_02072021_crop_map, NL_02162021_crop_map, blackout_map),
+animation <- tmap_animation(list(NL_02072021_crop_map, 
+                                 NL_02162021_crop_map, 
+                                 blackout_map),
                             delay = 100, #100ms delay between images
                             width = 800,
                             height = 600, 
@@ -2317,7 +2323,9 @@ col_names_s <- c("Method" = "Method",
                  "Average Income" = "Average Income")
 
 #generate the kable from the blackout_summary 
-standard_kable(combined_table, col_names_s, caption = "Blackout Status Summary for Homes in Houston")
+standard_kable(combined_table, 
+               col_names_s, 
+               caption = "Blackout Status Summary for Homes in Houston")
 
 ```
 

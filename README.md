@@ -4,9 +4,11 @@ Inequalities in a Changing Climate
 
 # Contents
 
-This repository contains an analysis of blackout impacts during the
-Great Texas Freeze of 2021, evaluating socioeconomic disparities and
-spatial patterns of recovery across the Houston metropolitan area.
+This repository (knitted HTML linked here:
+[houston_extreme_storms](https://jadenorli.github.io/houston-storms/code/houston_extreme_storms.html))
+contains an analysis of blackout impacts during the Great Texas Freeze
+of 2021, evaluating socioeconomic disparities and spatial patterns of
+recovery across the Houston metropolitan area.
 
 # Techniques
 
