@@ -7,7 +7,7 @@ bibliography: ./bibs/combined.bib
 ---
 
 # Contents
-
+  
 This repository (knitted HTML linked here: [houston_extreme_storms](https://jadenorli.github.io/houston-storms/code/houston_extreme_storms.html)) contains an analysis of blackout impacts during the Great Texas Freeze of 2021, evaluating socioeconomic disparities and spatial patterns of recovery across the Houston metropolitan area.
 
 # Techniques
@@ -27,7 +27,7 @@ This repository showcases a range of advanced technical skills and analytical me
 2.  Geospatial Analysis
     -   Manipulating spatial data with terra and sf, including advanced spatial operations such as intersections, raster manipulation, and spatial weighting [@terra; @sf]
 
-    -   Creating dynamic, interactive visualizations using tmap to explore and communicate geospatial data insights [@tmap]
+    -   Creating dynamic and interactive visualizations using tmap to explore and communicate geospatial data insights [@tmap]
 
     -   Leveraging geospatial overlays and zonal statistics to assess the relationship between socioeconomic variables and blackout classifications
 

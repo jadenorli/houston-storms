@@ -37,8 +37,8 @@ analytical methodologies, including:
       spatial operations such as intersections, raster manipulation, and
       spatial weighting (Hijmans 2024; Pebesma 2018)
 
-    - Creating dynamic, interactive visualizations using tmap to explore
-      and communicate geospatial data insights (Tennekes 2018)
+    - Creating dynamic and interactive visualizations using tmap to
+      explore and communicate geospatial data insights (Tennekes 2018)
 
     - Leveraging geospatial overlays and zonal statistics to assess the
       relationship between socioeconomic variables and blackout
