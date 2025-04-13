@@ -16,4 +16,10 @@ h1.title {
   text-align: center;
 }
 
- 
+/* enable line wrapping inside code chunks */
+pre code {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  overflow-x: hidden !important;
+}
+
