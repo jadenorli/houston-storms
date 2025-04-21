@@ -1,19 +1,66 @@
 
-/* set the aesthetics for the body of the document */
-body {
-  font-family: "Times New Roman", Times, serif; /*set the font to Times New Roman */
+/* Title Aesthetics */
+.title {
+  font-family: "Times New Roman", Times, serif; 
+  font-size: 2.75rem;
+  font-weight: bold;
+  border-bottom: 0px;
+  text-align: center;
+  margin-bottom: 3.75rem;
 }
 
-/* set the aesthetics for the headers of the document */
-h1, h2, h3, h4, h5, h6, h7 {
+/* Main Body Aesthetics */
+body {
+  font-size: 1.1rem;
+  margin: 0;
   font-family: "Times New Roman", Times, serif;
 }
 
-/* set the aesthetics for the main title of the document */
-h1.title {
-  font-size: 40px;
+
+/* Header h1 Aesthetics */
+h1, .h1 {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 2rem;
   font-weight: bold;
-  text-align: center;
+  border-bottom: 0.125rem solid #78c1ad; /* Underline effect */
+}
+
+/* Header h2 Aesthetics */
+h2, .h2 {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 1.8rem;
+  background-color:  rgba(174, 209, 200, 0.4) !important;
+  border-radius: 0.4rem !important; 
+  padding: 0.5rem; /* ensures text doesn't touch rounded edges */
+}
+
+/* Header h3 Aesthetics */
+h3, .h3 {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 1.6rem;
+}
+
+/* Header h4 Aesthetics */
+h4, .h4 {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 1.4rem;
+  text-indent: 0.5rem;
+  color: #78c1ad;
+  margin-left: 1rem;
+}
+
+
+/* Table of Contents Title Aesthetics */
+#toc-title {
+  font-size: 1.05rem;
+  font-weight: bold;  
+  text-indent: 0rem;
+}
+
+
+/* Code Folding Aesthetics */
+pre {
+  background-color:  rgba(174, 209, 200, 0.4) !important; /* background color */
 }
 
 /* enable line wrapping inside code chunks */
